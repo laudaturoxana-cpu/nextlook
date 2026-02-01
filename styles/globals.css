@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-cream text-text font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-wide;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-8 py-4 bg-gold text-white font-body font-bold text-sm uppercase tracking-widest rounded-full shadow-gold hover:bg-gold-dark hover:shadow-gold-lg transition-all duration-300 ease-out;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-8 py-4 border-2 border-olive text-olive font-body font-bold text-sm uppercase tracking-widest rounded-full hover:bg-olive hover:text-white transition-all duration-300 ease-out;
+  }
+
+  .btn-outline-gold {
+    @apply inline-flex items-center justify-center px-8 py-4 border-2 border-gold text-gold font-body font-bold text-sm uppercase tracking-widest rounded-full hover:bg-gold hover:text-white transition-all duration-300 ease-out;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl shadow-soft p-6 transition-all duration-300 hover:shadow-soft-lg;
+  }
+
+  .card-hover {
+    @apply hover:-translate-y-1;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 border border-sand rounded-xl font-body text-text placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-body font-bold uppercase tracking-wider rounded-full;
+  }
+
+  .badge-gold {
+    @apply bg-gold text-white;
+  }
+
+  .badge-new {
+    @apply bg-gold text-white animate-pulse-gold;
+  }
+
+  .section-title {
+    @apply font-display text-display-md text-text tracking-wide text-center;
+  }
+
+  .section-subtitle {
+    @apply font-body text-lg text-text-secondary text-center max-w-2xl mx-auto;
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-gradient-to-r from-gold to-gold-dark bg-clip-text text-transparent;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Gold Particles Animation */
+.gold-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gold-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #D4AF37;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.6), 0 0 15px rgba(212, 175, 55, 0.3);
+  animation: sparkleFloat 4s ease-in-out infinite;
+  opacity: 0;
+}
+
+@keyframes sparkleFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) scale(0);
+  }
+  10% {
+    opacity: 0.6;
+    transform: translateY(-20px) translateX(5px) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-80px) translateX(-10px) scale(1.2);
+  }
+  90% {
+    opacity: 0.4;
+    transform: translateY(-140px) translateX(15px) scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-160px) translateX(0) scale(0);
+  }
+}
+
+/* Scroll Indicator */
+.scroll-indicator {
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+/* Product Card Hover Effects */
+.product-card-image {
+  @apply transition-transform duration-500 ease-out;
+}
+
+.product-card:hover .product-card-image {
+  @apply scale-105;
+}
+
+/* Category Card Overlay */
+.category-overlay {
+  @apply absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300;
+}
+
+.category-card:hover .category-overlay {
+  @apply from-gold/80 via-gold/40 to-transparent;
+}
+
+/* Trust Badge Pulse */
+.trust-badge {
+  @apply transition-transform duration-300;
+}
+
+.trust-badge:hover {
+  @apply scale-105;
+}
