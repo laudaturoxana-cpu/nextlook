@@ -12,7 +12,7 @@ interface CartState {
   toggleCart: () => void
   addItem: (product: Product, size?: string | null, color?: string | null, quantity?: number) => void
   removeItem: (productId: string, size?: string | null, color?: string | null) => void
-  updateQuantity: (productId: string, size?: string | null, color?: string | null, quantity?: number) => void
+  updateQuantity: (productId: string, size: string | null, color: string | null, quantity: number) => void
   clearCart: () => void
   getItemCount: () => number
   getSubtotal: () => number
