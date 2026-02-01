@@ -270,7 +270,7 @@ export default function CheckoutPage() {
                 </h2>
                 <div className="space-y-3">
                   {deliveryOptions.map((option) => {
-                    const isDisabled = option.minOrder && subtotal < option.minOrder
+                    const isDisabled = !!(option.minOrder && subtotal < option.minOrder)
                     return (
                       <label
                         key={option.id}
