@@ -32,7 +32,7 @@ export default function HeroSection() {
 
         {/* Main Title */}
         <h1
-          className="font-display text-4xl md:text-6xl lg:text-7xl xl:text-8xl text-text leading-tight mb-6 animate-[fadeInUp_0.6s_ease-out_0.2s_both]"
+          className="font-display text-3xl md:text-5xl lg:text-6xl xl:text-7xl text-text leading-tight mb-6 animate-[fadeInUp_0.6s_ease-out_0.2s_both]"
         >
           NU MAI PIERDE TIMPUL ALEGÂND.
           <br />
