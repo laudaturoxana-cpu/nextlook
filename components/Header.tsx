@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Search, User, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Search, User, ShoppingBag, Menu, X, LogOut, Package, MapPin, Heart, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useCart } from '@/hooks/useCart'
-import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/hooks/useAuth'
 import CartDrawer from '@/components/CartDrawer'
+import toast from 'react-hot-toast'
 
 const navigation = [
   { name: 'Femei', href: '/shop?category=femei' },
@@ -23,14 +23,16 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
   const { openCart, getItemCount } = useCart()
+  const { user, loading, signOut, isAuthenticated } = useAuth()
   const itemCount = getItemCount()
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20)
     }
-
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -38,6 +40,27 @@ export default function Header() {
   useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSignOut = async () => {
+    setIsUserMenuOpen(false)
+    const { error } = await signOut()
+    if (error) {
+      toast.error('A apărut o eroare la deconectare')
+    } else {
+      toast.success('Te-ai deconectat cu succes')
+      router.push('/')
+    }
+  }
 
   return (
     <>
@@ -78,64 +101,126 @@ export default function Header() {
             </div>
 
             {/* Right Side Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               {/* Search */}
               <button
-                className="p-2 text-text hover:text-gold transition-colors"
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-text hover:text-gold transition-colors"
                 aria-label="Caută"
               >
                 <Search className="h-5 w-5" />
               </button>
 
               {/* User Menu */}
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="p-2 text-text hover:text-gold transition-colors"
+                  className={cn(
+                    'p-3 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors',
+                    isAuthenticated ? 'text-gold' : 'text-text hover:text-gold'
+                  )}
                   aria-label="Cont"
                 >
                   <User className="h-5 w-5" />
                 </button>
 
-                <AnimatePresence>
-                  {isUserMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-soft-lg border border-sand overflow-hidden"
-                    >
+                <div
+                  className={cn(
+                    'absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-soft-lg border border-sand overflow-hidden transition-all duration-200',
+                    isUserMenuOpen
+                      ? 'opacity-100 translate-y-0 pointer-events-auto'
+                      : 'opacity-0 translate-y-2 pointer-events-none'
+                  )}
+                >
+                  {isAuthenticated ? (
+                    <>
+                      {/* User Info */}
+                      <div className="px-4 py-3 bg-cream-50 border-b border-sand">
+                        <p className="text-sm font-medium text-text truncate">
+                          {user?.user_metadata?.full_name || 'Contul meu'}
+                        </p>
+                        <p className="text-xs text-text-secondary truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+
                       <Link
                         href="/account"
-                        className="block px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
-                        Contul meu
+                        <User className="h-4 w-4 text-gold" />
+                        Profilul meu
                       </Link>
                       <Link
                         href="/account/orders"
-                        className="block px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
+                        <Package className="h-4 w-4 text-gold" />
                         Comenzile mele
                       </Link>
-                      <hr className="border-sand" />
                       <Link
-                        href="/auth/login"
-                        className="block px-4 py-3 text-sm text-gold font-medium hover:bg-cream-50 transition-colors"
+                        href="/account/addresses"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >
+                        <MapPin className="h-4 w-4 text-gold" />
+                        Adresele mele
+                      </Link>
+                      <Link
+                        href="/account"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Heart className="h-4 w-4 text-gold" />
+                        Favorite
+                      </Link>
+                      <hr className="border-sand" />
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Deconectează-te
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {/* Guest Menu */}
+                      <div className="px-4 py-3 bg-cream-50 border-b border-sand">
+                        <p className="text-sm font-medium text-text">
+                          Bine ai venit!
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          Conectează-te pentru a vedea comenzile tale
+                        </p>
+                      </div>
+
+                      <Link
+                        href="/auth/login"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gold font-medium hover:bg-cream-50 transition-colors"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <User className="h-4 w-4" />
                         Conectează-te
                       </Link>
-                    </motion.div>
+                      <Link
+                        href="/auth/register"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <UserPlus className="h-4 w-4 text-gold" />
+                        Creează cont
+                      </Link>
+                    </>
                   )}
-                </AnimatePresence>
+                </div>
               </div>
 
               {/* Cart */}
               <button
                 onClick={openCart}
-                className="relative p-2 text-text hover:text-gold transition-colors"
+                className="relative p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-text hover:text-gold transition-colors"
                 aria-label="Coș de cumpărături"
               >
                 <ShoppingBag className="h-5 w-5" />
@@ -147,14 +232,14 @@ export default function Header() {
               </button>
 
               {/* CTA Button - Desktop */}
-              <Link href="/shop" className="hidden lg:block">
-                <Button size="sm">Vezi Colecția</Button>
+              <Link href="/shop" className="hidden lg:block btn-primary px-4 py-2 text-xs">
+                Vezi Colecția
               </Link>
 
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 text-text"
+                className="lg:hidden p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-text"
                 aria-label="Meniu"
               >
                 {isMobileMenuOpen ? (
@@ -168,37 +253,62 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white border-t border-sand"
-            >
-              <div className="container mx-auto px-4 py-6 space-y-4">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      'block font-body text-lg font-medium py-2 transition-colors',
-                      pathname.includes(item.href.split('?')[0])
-                        ? 'text-gold'
-                        : 'text-text'
-                    )}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                <hr className="border-sand my-4" />
-                <Link href="/shop" className="block">
-                  <Button className="w-full">Vezi Colecția</Button>
-                </Link>
-              </div>
-            </motion.div>
+        <div
+          className={cn(
+            'lg:hidden bg-white border-t border-sand overflow-hidden transition-all duration-300',
+            isMobileMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
           )}
-        </AnimatePresence>
+        >
+          <div className="container mx-auto px-4 py-6 space-y-4">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  'block font-body text-lg font-medium py-2 transition-colors',
+                  pathname.includes(item.href.split('?')[0])
+                    ? 'text-gold'
+                    : 'text-text'
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <hr className="border-sand my-4" />
+
+            {/* Mobile Auth Links */}
+            {isAuthenticated ? (
+              <>
+                <Link href="/account" className="block font-body text-lg font-medium py-2 text-text">
+                  Contul meu
+                </Link>
+                <Link href="/account/orders" className="block font-body text-lg font-medium py-2 text-text">
+                  Comenzile mele
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="block font-body text-lg font-medium py-2 text-red-500 w-full text-left"
+                >
+                  Deconectează-te
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="block font-body text-lg font-medium py-2 text-gold">
+                  Conectează-te
+                </Link>
+                <Link href="/auth/register" className="block font-body text-lg font-medium py-2 text-text">
+                  Creează cont
+                </Link>
+              </>
+            )}
+
+            <hr className="border-sand my-4" />
+            <Link href="/shop" className="block btn-primary w-full">
+              Vezi Colecția
+            </Link>
+          </div>
+        </div>
       </header>
 
       {/* Cart Drawer */}

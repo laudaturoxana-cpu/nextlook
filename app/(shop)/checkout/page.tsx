@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ChevronDown, Lock, CreditCard, Truck, MapPin, Shield, Star } from 'lucide-react'
+import { ChevronDown, Lock, CreditCard, Truck, MapPin, Shield, Star, User, UserPlus, LogIn } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
+import { useAuth } from '@/hooks/useAuth'
 import { formatPrice, romanianCounties } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -74,15 +75,19 @@ const paymentOptions = [
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, getSubtotal, clearCart } = useCart()
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [deliveryMethod, setDeliveryMethod] = useState('curier_rapid')
   const [paymentMethod, setPaymentMethod] = useState('card')
+  const [createAccount, setCreateAccount] = useState(false)
+  const [accountPassword, setAccountPassword] = useState('')
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
   })
@@ -90,6 +95,14 @@ export default function CheckoutPage() {
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Pre-fill form with user data when logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setValue('email', user.email || '')
+      setValue('fullName', user.user_metadata?.full_name || '')
+    }
+  }, [isAuthenticated, user, setValue])
 
   const subtotal = getSubtotal()
 
@@ -195,6 +208,53 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Checkout Form */}
             <div className="lg:col-span-2 space-y-8">
+              {/* Login/Register Prompt for Guests */}
+              {!isAuthenticated && (
+                <div className="bg-gradient-to-r from-gold/5 to-gold/10 rounded-2xl p-6 border border-gold/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="font-medium text-text mb-1">Ai deja cont?</h3>
+                      <p className="text-sm text-text-secondary">
+                        Conectează-te pentru checkout rapid și istoric comenzi
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <Link href="/auth/login?redirect=/checkout">
+                        <Button variant="outline" size="sm">
+                          <LogIn className="h-4 w-4 mr-2" />
+                          Conectează-te
+                        </Button>
+                      </Link>
+                      <Link href="/auth/register?redirect=/checkout">
+                        <Button size="sm">
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Creează cont
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Welcome message for logged-in users */}
+              {isAuthenticated && user && (
+                <div className="bg-green-50 rounded-2xl p-4 border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <User className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-800">
+                        Bine ai revenit, {user.user_metadata?.full_name || 'utilizator'}!
+                      </p>
+                      <p className="text-sm text-green-600">
+                        Datele tale au fost completate automat
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Contact Info */}
               <div className="bg-white rounded-2xl shadow-soft p-6">
                 <h2 className="font-display text-xl text-text mb-6 flex items-center gap-2">
@@ -208,6 +268,7 @@ export default function CheckoutPage() {
                     {...register('email')}
                     error={errors.email?.message}
                     required
+                    disabled={isAuthenticated}
                   />
                   <Input
                     label="Telefon"
@@ -217,6 +278,41 @@ export default function CheckoutPage() {
                     required
                   />
                 </div>
+
+                {/* Create Account Option for Guests */}
+                {!isAuthenticated && (
+                  <div className="mt-4 pt-4 border-t border-sand">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={createAccount}
+                        onChange={(e) => setCreateAccount(e.target.checked)}
+                        className="w-4 h-4 text-gold rounded focus:ring-gold mt-1"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-text">
+                          Vreau să îmi creez cont pentru comenzi viitoare
+                        </span>
+                        <p className="text-xs text-text-secondary mt-1">
+                          Salvează datele pentru checkout rapid și urmărește comenzile
+                        </p>
+                      </div>
+                    </label>
+
+                    {createAccount && (
+                      <div className="mt-4">
+                        <Input
+                          label="Parolă pentru contul nou"
+                          type="password"
+                          value={accountPassword}
+                          onChange={(e) => setAccountPassword(e.target.value)}
+                          placeholder="Minim 6 caractere"
+                          required={createAccount}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Shipping Address */}
