@@ -39,7 +39,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Haine și încălțăminte branded la prețuri accesibile.
+              Haine și încălțăminte de brand la prețuri accesibile.
               100% originale, livrare rapidă, retur gratuit.
             </p>
             <p className="text-gold font-medium text-sm">
@@ -47,12 +47,12 @@ export default function Footer() {
             </p>
 
             {/* Social Links */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <a
                 href="https://facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 bg-white/10 rounded-full hover:bg-gold transition-colors"
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 rounded-full hover:bg-gold transition-colors"
                 aria-label="Facebook"
               >
                 <Facebook className="h-5 w-5" />
@@ -61,7 +61,7 @@ export default function Footer() {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 bg-white/10 rounded-full hover:bg-gold transition-colors"
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/10 rounded-full hover:bg-gold transition-colors"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />

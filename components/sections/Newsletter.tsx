@@ -78,7 +78,9 @@ export default function Newsletter() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
+                <label htmlFor="newsletter-email" className="sr-only">Adresa ta de email</label>
                 <input
+                  id="newsletter-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -98,7 +100,7 @@ export default function Newsletter() {
           )}
 
           {/* Privacy Note */}
-          <p className="mt-6 text-xs text-white/60">
+          <p className="mt-6 text-xs text-white/80">
             Prin abonare, ești de acord cu{' '}
             <a href="/confidentialitate" className="underline hover:text-white transition-colors">
               Politica de confidențialitate

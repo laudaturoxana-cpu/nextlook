@@ -120,7 +120,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             {/* Rating */}
             {product.reviews_count > 0 && (
               <div className="flex items-center gap-1 mb-2">
-                <div className="flex items-center">
+                <div className="flex items-center" role="img" aria-label={`Rating: ${product.rating} din 5 stele`}>
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
@@ -129,6 +129,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
                           ? 'text-gold fill-gold'
                           : 'text-sand'
                       }`}
+                      aria-hidden="true"
                     />
                   ))}
                 </div>
