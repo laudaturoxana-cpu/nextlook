@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Check if email already exists
     const { data: existing } = await supabase
-      .from('newsletter')
+      .from('newsletter_subscribers')
       .select('id')
       .eq('email', email)
       .single()
@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
     if (existing) {
       // Update subscription status if already exists
       await supabase
-        .from('newsletter')
-        .update({ subscribed: true })
+        .from('newsletter_subscribers')
+        .update({ is_active: true })
         .eq('email', email)
     } else {
       // Insert new subscriber
       const { error } = await supabase
-        .from('newsletter')
-        .insert({ email, subscribed: true })
+        .from('newsletter_subscribers')
+        .insert({ email, is_active: true })
 
       if (error) {
         throw error
