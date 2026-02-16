@@ -12,7 +12,7 @@ const contactInfo = [
   {
     icon: Phone,
     title: 'Telefon',
-    content: '+40 722 123 456',
+    content: '+40 749 976 984',
     subtext: 'L-V: 9:00 - 18:00',
   },
   {
@@ -24,8 +24,8 @@ const contactInfo = [
   {
     icon: MapPin,
     title: 'Adresă',
-    content: 'București, România',
-    subtext: 'Ridicare personală disponibilă',
+    content: 'Brașov, Str. Carpaților nr. 6',
+    subtext: 'Bl. E28, Ap. 27',
   },
   {
     icon: Clock,

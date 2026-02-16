@@ -110,7 +110,7 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <Phone className="h-5 w-5 text-gold flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-white text-sm font-medium">+40 XXX XXX XXX</p>
+                  <a href="tel:+40749976984" className="text-white text-sm font-medium hover:text-gold transition-colors">+40 749 976 984</a>
                   <p className="text-gray-400 text-xs">L-V: 9:00 - 18:00</p>
                 </div>
               </li>
@@ -129,7 +129,7 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-gold flex-shrink-0 mt-0.5" />
                 <p className="text-gray-400 text-sm">
-                  București, România
+                  Brașov, Str. Carpaților nr. 6
                 </p>
               </li>
             </ul>
@@ -151,9 +151,10 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container mx-auto px-4 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-gray-400 text-sm text-center md:text-left">
-              © {new Date().getFullYear()} NEXTLOOK. Toate drepturile rezervate.
-            </p>
+            <div className="text-gray-400 text-sm text-center md:text-left">
+              <p>© {new Date().getFullYear()} NEXTLOOK. Toate drepturile rezervate.</p>
+              <p className="text-xs mt-1">NEXT LOOK SRL | CUI: 53260192 | Brașov, Str. Carpaților nr. 6, Bl. E28, Ap. 27</p>
+            </div>
             <div className="flex items-center gap-6">
               {footerLinks.legal.map((link) => (
                 <a

@@ -58,7 +58,7 @@ export default function DesprePage() {
               </h2>
               <div className="prose prose-lg max-w-none text-text-secondary">
                 <p>
-                  Am început NEXTLOOK cu o misiune clară: să facem cumpărăturile de haine și încălțăminte branded o experiență plăcută și fără griji.
+                  Am început NEXTLOOK cu o misiune clară: să facem cumpărăturile de haine și încălțăminte de brand o experiență plăcută și fără griji.
                 </p>
                 <p>
                   Știm cum e să comanzi online și să primești altceva decât te așteptai. Știm cum e să nu îți vină mărimea și să te chinui să returnezi. Știm cum e să te întrebi dacă produsul e original sau nu.
@@ -120,6 +120,18 @@ export default function DesprePage() {
             <Link href="/shop">
               <Button size="lg">Vezi Colecția</Button>
             </Link>
+          </div>
+        </section>
+
+        {/* Company Info */}
+        <section className="py-12 bg-cream-200">
+          <div className="container mx-auto px-4 lg:px-8 text-center">
+            <p className="text-text-secondary text-sm">
+              <strong>NEXT LOOK SRL</strong> | CUI: 53260192 | Brașov, Str. Carpaților nr. 6, Bl. E28, Ap. 27
+            </p>
+            <p className="text-text-secondary text-sm mt-2">
+              Telefon: <a href="tel:+40749976984" className="text-gold hover:underline">+40 749 976 984</a> | Email: <a href="mailto:contact@nextlook.ro" className="text-gold hover:underline">contact@nextlook.ro</a>
+            </p>
           </div>
         </section>
       </main>
