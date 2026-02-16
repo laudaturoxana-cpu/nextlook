@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/account'
@@ -142,5 +142,31 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function LoginLoading() {
+  return (
+    <div className="container mx-auto px-4 lg:px-8 py-12">
+      <div className="max-w-md mx-auto">
+        <div className="animate-pulse">
+          <div className="h-10 bg-sand rounded w-3/4 mx-auto mb-4"></div>
+          <div className="h-4 bg-sand rounded w-1/2 mx-auto mb-8"></div>
+          <div className="bg-white rounded-2xl shadow-soft p-6 lg:p-8 space-y-4">
+            <div className="h-12 bg-sand rounded"></div>
+            <div className="h-12 bg-sand rounded"></div>
+            <div className="h-12 bg-sand rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <LoginForm />
+    </Suspense>
   )
 }

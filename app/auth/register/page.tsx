@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react'
@@ -16,7 +16,7 @@ const benefits = [
   'Istoric complet al comenzilor',
 ]
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/account'
@@ -227,5 +227,45 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function RegisterLoading() {
+  return (
+    <div className="container mx-auto px-4 lg:px-8 py-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          <div className="hidden lg:block">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-sand rounded w-3/4"></div>
+              <div className="h-4 bg-sand rounded w-full"></div>
+              <div className="h-4 bg-sand rounded w-full"></div>
+              <div className="h-4 bg-sand rounded w-full"></div>
+            </div>
+          </div>
+          <div>
+            <div className="animate-pulse">
+              <div className="h-10 bg-sand rounded w-3/4 mb-4"></div>
+              <div className="h-4 bg-sand rounded w-1/2 mb-8"></div>
+              <div className="bg-white rounded-2xl shadow-soft p-6 lg:p-8 space-y-4">
+                <div className="h-12 bg-sand rounded"></div>
+                <div className="h-12 bg-sand rounded"></div>
+                <div className="h-12 bg-sand rounded"></div>
+                <div className="h-12 bg-sand rounded"></div>
+                <div className="h-12 bg-sand rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterLoading />}>
+      <RegisterForm />
+    </Suspense>
   )
 }
