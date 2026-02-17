@@ -8,6 +8,7 @@ interface Particle {
   delay: string
   duration: string
   size: number
+  type: 'gold' | 'olive'
 }
 
 export default function GoldParticles({ count = 20 }: { count?: number }) {
@@ -20,6 +21,8 @@ export default function GoldParticles({ count = 20 }: { count?: number }) {
       delay: `${Math.random() * 4}s`,
       duration: `${3 + Math.random() * 2}s`,
       size: 2 + Math.random() * 2,
+      // Mix of gold and olive particles (roughly 60% gold, 40% olive)
+      type: Math.random() > 0.4 ? 'gold' : 'olive' as 'gold' | 'olive',
     }))
     setParticles(newParticles)
   }, [count])
@@ -29,7 +32,7 @@ export default function GoldParticles({ count = 20 }: { count?: number }) {
       {particles.map((particle) => (
         <div
           key={particle.id}
-          className="gold-particle"
+          className={particle.type === 'gold' ? 'gold-particle' : 'olive-particle'}
           style={{
             left: particle.left,
             bottom: 0,

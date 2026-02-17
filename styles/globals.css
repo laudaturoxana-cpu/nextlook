@@ -109,6 +109,17 @@
   opacity: 0;
 }
 
+.olive-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #6B7B5E;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(107, 123, 94, 0.6), 0 0 15px rgba(107, 123, 94, 0.3);
+  animation: sparkleFloat 4s ease-in-out infinite;
+  opacity: 0;
+}
+
 @keyframes sparkleFloat {
   0% {
     opacity: 0;
