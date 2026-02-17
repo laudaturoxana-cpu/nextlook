@@ -5,86 +5,39 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { CheckCircle, Package, Mail, Phone, ArrowRight } from 'lucide-react'
+import { CheckCircle, Package, Mail, Phone, ArrowRight, Banknote } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { formatPrice, getOrderStatusText, getDeliveryDate } from '@/lib/utils'
+import { useCart } from '@/hooks/useCart'
 import { Order } from '@/types'
-
-// Mock order for demo
-const mockOrder: Order = {
-  id: '1',
-  order_number: 'NL-2026-0127',
-  user_id: null,
-  email: 'maria@example.com',
-  phone: '0722123456',
-  shipping_name: 'Maria Popescu',
-  shipping_address: 'Str. Exemplu nr. 10, Bl. A, Ap. 5',
-  shipping_city: 'Brașov',
-  shipping_county: 'Brașov',
-  shipping_postal_code: '500001',
-  subtotal: 899,
-  shipping_cost: 0,
-  discount: 0,
-  total: 899,
-  payment_method: 'card',
-  payment_status: 'paid',
-  delivery_method: 'curier_rapid',
-  status: 'confirmed',
-  stripe_payment_intent_id: null,
-  notes: null,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  order_items: [
-    {
-      id: '1',
-      order_id: '1',
-      product_id: '1',
-      product_name: 'Nike Air Max 90 Essential White/Black',
-      product_image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
-      size: '42',
-      color: 'Alb/Negru',
-      price: 449,
-      quantity: 1,
-      subtotal: 449,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      order_id: '1',
-      product_id: '2',
-      product_name: 'Adidas Ultraboost 22 Running Shoes',
-      product_image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
-      size: '42',
-      color: 'Negru',
-      price: 450,
-      quantity: 1,
-      subtotal: 450,
-      created_at: new Date().toISOString(),
-    },
-  ],
-}
 
 export default function OrderConfirmationPage() {
   const params = useParams()
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { clearCart } = useCart()
 
   useEffect(() => {
-    // În producție, aici se face fetch din API
-    // const fetchOrder = async () => {
-    //   const response = await fetch(`/api/orders/${params.id}`)
-    //   const data = await response.json()
-    //   setOrder(data.order)
-    //   setIsLoading(false)
-    // }
-    // fetchOrder()
+    const fetchOrder = async () => {
+      try {
+        const response = await fetch(`/api/orders/${params.id}`)
+        const data = await response.json()
+        if (data.order) {
+          setOrder(data.order)
+          // Clear cart after successful order fetch
+          clearCart()
+        }
+      } catch (error) {
+        console.error('Error fetching order:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-    // Demo: folosim mock data
-    setTimeout(() => {
-      setOrder(mockOrder)
-      setIsLoading(false)
-    }, 500)
-  }, [params.id])
+    if (params.id) {
+      fetchOrder()
+    }
+  }, [params.id, clearCart])
 
   if (isLoading) {
     return (
@@ -215,14 +168,21 @@ export default function OrderConfirmationPage() {
                 <span>{order.shipping_cost === 0 ? 'GRATUITĂ' : formatPrice(order.shipping_cost)}</span>
               </div>
               <div className="flex justify-between font-medium text-text pt-2 border-t border-sand">
-                <span>Total plătit</span>
+                <span>{order.payment_method === 'ramburs' ? 'Total de plată la livrare' : 'Total plătit'}</span>
                 <span className="font-display text-xl text-gold">
                   {formatPrice(order.total)}
                 </span>
               </div>
-              <p className="text-sm text-text-secondary">
-                Metodă plată: {order.payment_method === 'card' ? 'Card online' : 'Ramburs'}
-              </p>
+              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                {order.payment_method === 'ramburs' ? (
+                  <>
+                    <Banknote className="h-4 w-4 text-gold" />
+                    <span>Plata se face la livrare (cash sau card)</span>
+                  </>
+                ) : (
+                  <span>Metodă plată: Card online</span>
+                )}
+              </div>
             </div>
           </motion.div>
 
