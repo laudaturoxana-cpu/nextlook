@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import ProductCard from '@/components/ProductCard'
-import { Button } from '@/components/ui/Button'
 import { Product } from '@/types'
 
 // Mock data pentru demo - în producție, se va face fetch din Supabase
@@ -236,10 +235,8 @@ export default function FeaturedProducts() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center mt-12"
         >
-          <Link href="/shop">
-            <Button variant="outline" size="lg">
-              Vezi Toate Produsele
-            </Button>
+          <Link href="/shop" className="btn-outline-gold">
+            Vezi Toate Produsele
           </Link>
         </motion.div>
       </div>

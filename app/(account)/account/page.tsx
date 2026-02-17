@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -12,14 +12,15 @@ import {
   Lock,
   LogOut,
   ChevronRight,
-  Mail,
-  Phone,
   Edit2,
   Save,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
+import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 const sidebarItems = [
@@ -30,34 +31,62 @@ const sidebarItems = [
   { id: 'password', label: 'Schimbă Parola', icon: Lock },
 ]
 
-// Mock user data
-const mockUser = {
-  id: '1',
-  email: 'maria@example.com',
-  full_name: 'Maria Popescu',
-  phone: '0722123456',
-  avatar_url: null,
-}
-
 export default function AccountPage() {
   const router = useRouter()
+  const { user, loading, signOut, isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [formData, setFormData] = useState({
-    fullName: mockUser.full_name || '',
-    email: mockUser.email,
-    phone: mockUser.phone || '',
+    fullName: '',
+    email: '',
+    phone: '',
   })
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   })
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/auth/login?redirect=/account')
+    }
+  }, [loading, isAuthenticated, router])
+
+  // Populate form with user data
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullName: user.user_metadata?.full_name || '',
+        email: user.email || '',
+        phone: user.user_metadata?.phone || '',
+      })
+    }
+  }, [user])
 
   const handleSaveProfile = async () => {
-    // În producție, se face update în Supabase
-    toast.success('Profilul a fost actualizat!')
-    setIsEditing(false)
+    setIsSaving(true)
+    try {
+      const supabase = createClient()
+
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: formData.fullName,
+          phone: formData.phone,
+        }
+      })
+
+      if (error) throw error
+
+      toast.success('Profilul a fost actualizat!')
+      setIsEditing(false)
+    } catch (error) {
+      toast.error('A apărut o eroare. Încearcă din nou.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleChangePassword = async () => {
@@ -65,15 +94,55 @@ export default function AccountPage() {
       toast.error('Parolele nu coincid')
       return
     }
-    // În producție, se face update prin Supabase Auth
-    toast.success('Parola a fost schimbată!')
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error('Parola trebuie să aibă minim 6 caractere')
+      return
+    }
+
+    setIsChangingPassword(true)
+    try {
+      const supabase = createClient()
+
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      })
+
+      if (error) throw error
+
+      toast.success('Parola a fost schimbată!')
+      setPasswordData({ newPassword: '', confirmPassword: '' })
+    } catch (error) {
+      toast.error('A apărut o eroare. Încearcă din nou.')
+    } finally {
+      setIsChangingPassword(false)
+    }
   }
 
   const handleLogout = async () => {
-    // În producție, se face logout prin Supabase
-    toast.success('Te-ai deconectat cu succes')
-    router.push('/')
+    const { error } = await signOut()
+    if (error) {
+      toast.error('A apărut o eroare la deconectare')
+    } else {
+      toast.success('Te-ai deconectat cu succes')
+      router.push('/')
+    }
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null
   }
 
   return (
@@ -84,6 +153,16 @@ export default function AccountPage() {
         {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-soft p-4">
+            {/* User info */}
+            <div className="px-4 py-3 mb-4 bg-cream-50 rounded-xl">
+              <p className="font-medium text-text truncate">
+                {user?.user_metadata?.full_name || 'Utilizator'}
+              </p>
+              <p className="text-sm text-text-secondary truncate">
+                {user?.email}
+              </p>
+            </div>
+
             <nav className="space-y-1">
               {sidebarItems.map((item) => (
                 <button
@@ -91,7 +170,7 @@ export default function AccountPage() {
                   onClick={() => item.href ? router.push(item.href) : setActiveTab(item.id)}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left',
-                    activeTab === item.id
+                    activeTab === item.id && !item.href
                       ? 'bg-gold text-white'
                       : 'text-text-secondary hover:bg-cream-50 hover:text-text'
                   )}
@@ -135,7 +214,7 @@ export default function AccountPage() {
                     Editează
                   </Button>
                 ) : (
-                  <Button size="sm" onClick={handleSaveProfile}>
+                  <Button size="sm" onClick={handleSaveProfile} isLoading={isSaving}>
                     <Save className="h-4 w-4 mr-2" />
                     Salvează
                   </Button>
@@ -157,7 +236,7 @@ export default function AccountPage() {
                     type="email"
                     value={formData.email}
                     disabled
-                    helperText="Emailul nu poate fi schimbat"
+                    helperText="Emailul nu poate fi schimbat din această pagină"
                   />
                 </div>
                 <div>
@@ -167,6 +246,7 @@ export default function AccountPage() {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     disabled={!isEditing}
+                    placeholder="07xxxxxxxx"
                   />
                 </div>
               </div>
@@ -202,20 +282,13 @@ export default function AccountPage() {
 
               <div className="space-y-4 max-w-md">
                 <Input
-                  label="Parola curentă"
-                  type="password"
-                  value={passwordData.currentPassword}
-                  onChange={(e) =>
-                    setPasswordData({ ...passwordData, currentPassword: e.target.value })
-                  }
-                />
-                <Input
                   label="Parola nouă"
                   type="password"
                   value={passwordData.newPassword}
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
                   }
+                  placeholder="Minim 6 caractere"
                 />
                 <Input
                   label="Confirmă parola nouă"
@@ -224,8 +297,13 @@ export default function AccountPage() {
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, confirmPassword: e.target.value })
                   }
+                  placeholder="Repetă parola nouă"
                 />
-                <Button onClick={handleChangePassword}>
+                <Button
+                  onClick={handleChangePassword}
+                  isLoading={isChangingPassword}
+                  disabled={!passwordData.newPassword || !passwordData.confirmPassword}
+                >
                   Actualizează Parola
                 </Button>
               </div>

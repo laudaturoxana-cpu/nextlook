@@ -18,9 +18,9 @@ const config: Config = {
         },
         // Accente aurii (PREMIUM)
         gold: {
-          DEFAULT: '#D4AF37',
+          DEFAULT: '#A58625',
           light: '#F4E5C3',
-          dark: '#B8941F',
+          dark: '#7D6516',
         },
         // Accente verzi/calde
         olive: '#6B7B5E',
@@ -29,12 +29,12 @@ const config: Config = {
         // Text
         text: {
           DEFAULT: '#2D2D2D',
-          secondary: '#9A9590',
+          secondary: '#736B66',
         },
       },
       fontFamily: {
-        display: ['Bebas Neue', 'sans-serif'],
-        body: ['Montserrat', 'sans-serif'],
+        display: ['var(--font-display)', 'Bebas Neue', 'sans-serif'],
+        body: ['var(--font-body)', 'Montserrat', 'sans-serif'],
       },
       fontSize: {
         'display-xl': ['140px', { lineHeight: '1', letterSpacing: '0.04em' }],
@@ -48,8 +48,8 @@ const config: Config = {
         '3xl': '24px',
       },
       boxShadow: {
-        'gold': '0 4px 20px rgba(212, 175, 55, 0.3)',
-        'gold-lg': '0 8px 40px rgba(212, 175, 55, 0.4)',
+        'gold': '0 4px 20px rgba(165, 134, 37, 0.3)',
+        'gold-lg': '0 8px 40px rgba(165, 134, 37, 0.4)',
         'soft': '0 4px 20px rgba(0, 0, 0, 0.08)',
         'soft-lg': '0 8px 40px rgba(0, 0, 0, 0.12)',
       },
@@ -72,8 +72,8 @@ const config: Config = {
           '50%': { opacity: '1', transform: 'scale(1)' },
         },
         pulseGold: {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(212, 175, 55, 0.4)' },
-          '50%': { boxShadow: '0 0 0 10px rgba(212, 175, 55, 0)' },
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(165, 134, 37, 0.4)' },
+          '50%': { boxShadow: '0 0 0 10px rgba(165, 134, 37, 0)' },
         },
         bounceSoft: {
           '0%, 100%': { transform: 'translateY(0)' },

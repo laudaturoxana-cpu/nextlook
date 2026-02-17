@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+export const dynamic = 'force-dynamic'
+
+// Initialize Resend lazily to avoid build-time errors
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY || '')
+}
 
 async function addToMailerLite(email: string) {
   const apiKey = process.env.MAILERLITE_API_KEY
@@ -66,6 +71,7 @@ export async function POST(request: NextRequest) {
 
       // Send welcome email via Resend
       try {
+        const resend = getResend()
         await resend.emails.send({
           from: 'NEXTLOOK <noreply@nextlook.ro>',
           to: email,
