@@ -28,8 +28,9 @@ export async function GET(
     // Fetch reviews for this product
     const { data: reviews } = await supabase
       .from('reviews')
-      .select('*, users(full_name)')
+      .select('*')
       .eq('product_id', product.id)
+      .eq('is_approved', true)
       .order('created_at', { ascending: false })
       .limit(10)
 

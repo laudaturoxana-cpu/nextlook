@@ -1,47 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Plus, MapPin, Edit2, Trash2, Check, Home, Building } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { romanianCounties, cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
 
 interface Address {
   id: string
   label: string
-  fullName: string
+  full_name: string
   phone: string
-  address: string
+  street: string
   city: string
   county: string
-  postalCode: string
-  isDefault: boolean
+  postal_code: string
+  is_default: boolean
   type: 'home' | 'work'
 }
 
-// Mock addresses - în producție vin din Supabase
-const mockAddresses: Address[] = [
-  {
-    id: '1',
-    label: 'Acasă',
-    fullName: 'Maria Popescu',
-    phone: '0722123456',
-    address: 'Str. Exemplu nr. 10, bl. A1, sc. 2, ap. 15',
-    city: 'București',
-    county: 'București',
-    postalCode: '010101',
-    isDefault: true,
-    type: 'home',
-  },
-]
-
 export default function AddressesPage() {
-  const [addresses, setAddresses] = useState<Address[]>(mockAddresses)
+  const router = useRouter()
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const [addresses, setAddresses] = useState<Address[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     label: '',
@@ -54,49 +44,131 @@ export default function AddressesPage() {
     type: 'home' as 'home' | 'work',
   })
 
-  const handleSave = () => {
-    if (editingId) {
-      setAddresses(addresses.map(addr =>
-        addr.id === editingId
-          ? { ...addr, ...formData }
-          : addr
-      ))
-      toast.success('Adresa a fost actualizată!')
-    } else {
-      const newAddress: Address = {
-        id: Date.now().toString(),
-        ...formData,
-        isDefault: addresses.length === 0,
-      }
-      setAddresses([...addresses, newAddress])
-      toast.success('Adresa a fost adăugată!')
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/login?redirect=/account/addresses')
+      return
     }
-    resetForm()
+
+    const fetchAddresses = async () => {
+      try {
+        const response = await fetch('/api/addresses')
+        const data = await response.json()
+        if (data.addresses) {
+          setAddresses(data.addresses)
+        }
+      } catch (error) {
+        console.error('Error fetching addresses:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchAddresses()
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const method = editingId ? 'PUT' : 'POST'
+      const body = editingId
+        ? { id: editingId, ...formData }
+        : formData
+
+      const response = await fetch('/api/addresses', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save address')
+      }
+
+      const data = await response.json()
+
+      if (editingId) {
+        setAddresses(addresses.map(addr =>
+          addr.id === editingId ? data.address : addr
+        ))
+        toast.success('Adresa a fost actualizată!')
+      } else {
+        setAddresses([...addresses, data.address])
+        toast.success('Adresa a fost adăugată!')
+      }
+      resetForm()
+    } catch (error) {
+      toast.error('A apărut o eroare. Te rugăm să încerci din nou.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleDelete = (id: string) => {
-    setAddresses(addresses.filter(addr => addr.id !== id))
-    toast.success('Adresa a fost ștearsă!')
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/addresses?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete address')
+      }
+
+      setAddresses(addresses.filter(addr => addr.id !== id))
+      toast.success('Adresa a fost ștearsă!')
+    } catch (error) {
+      toast.error('A apărut o eroare. Te rugăm să încerci din nou.')
+    }
   }
 
-  const handleSetDefault = (id: string) => {
-    setAddresses(addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id,
-    })))
-    toast.success('Adresa implicită a fost schimbată!')
+  const handleSetDefault = async (id: string) => {
+    try {
+      const address = addresses.find(a => a.id === id)
+      if (!address) return
+
+      const response = await fetch('/api/addresses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          fullName: address.full_name,
+          phone: address.phone,
+          address: address.street,
+          city: address.city,
+          county: address.county,
+          postalCode: address.postal_code,
+          label: address.label,
+          type: address.type,
+          is_default: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update address')
+      }
+
+      setAddresses(addresses.map(addr => ({
+        ...addr,
+        is_default: addr.id === id,
+      })))
+      toast.success('Adresa implicită a fost schimbată!')
+    } catch (error) {
+      toast.error('A apărut o eroare. Te rugăm să încerci din nou.')
+    }
   }
 
   const handleEdit = (address: Address) => {
     setFormData({
-      label: address.label,
-      fullName: address.fullName,
+      label: address.label || '',
+      fullName: address.full_name,
       phone: address.phone,
-      address: address.address,
+      address: address.street,
       city: address.city,
       county: address.county,
-      postalCode: address.postalCode,
-      type: address.type,
+      postalCode: address.postal_code || '',
+      type: address.type || 'home',
     })
     setEditingId(address.id)
     setIsAdding(true)
@@ -115,6 +187,26 @@ export default function AddressesPage() {
     })
     setIsAdding(false)
     setEditingId(null)
+  }
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="container mx-auto px-4 lg:px-8 py-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-6 bg-cream-100 rounded w-32" />
+          <div className="h-12 bg-cream-100 rounded w-64" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 space-y-4">
+                <div className="h-6 bg-cream-100 rounded w-1/3" />
+                <div className="h-4 bg-cream-100 rounded w-2/3" />
+                <div className="h-4 bg-cream-100 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -234,7 +326,7 @@ export default function AddressesPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button onClick={handleSave}>
+              <Button onClick={handleSave} isLoading={isSaving}>
                 {editingId ? 'Salvează modificările' : 'Adaugă adresa'}
               </Button>
               <Button variant="outline" onClick={resetForm}>
@@ -269,30 +361,30 @@ export default function AddressesPage() {
               animate={{ opacity: 1 }}
               className={cn(
                 'bg-white rounded-2xl shadow-soft p-6 relative',
-                address.isDefault && 'ring-2 ring-gold'
+                address.is_default && 'ring-2 ring-gold'
               )}
             >
-              {address.isDefault && (
+              {address.is_default && (
                 <span className="absolute top-4 right-4 px-2 py-1 bg-gold/10 text-gold text-xs font-medium rounded-full">
                   Implicită
                 </span>
               )}
 
               <div className="flex items-start gap-3 mb-4">
-                {address.type === 'home' ? (
-                  <Home className="h-5 w-5 text-gold flex-shrink-0" />
-                ) : (
+                {address.type === 'work' ? (
                   <Building className="h-5 w-5 text-gold flex-shrink-0" />
+                ) : (
+                  <Home className="h-5 w-5 text-gold flex-shrink-0" />
                 )}
                 <div>
-                  <h3 className="font-medium text-text">{address.label || (address.type === 'home' ? 'Acasă' : 'Birou')}</h3>
-                  <p className="text-sm text-text-secondary">{address.fullName}</p>
+                  <h3 className="font-medium text-text">{address.label || (address.type === 'work' ? 'Birou' : 'Acasă')}</h3>
+                  <p className="text-sm text-text-secondary">{address.full_name}</p>
                 </div>
               </div>
 
               <div className="text-sm text-text-secondary space-y-1 mb-4">
-                <p>{address.address}</p>
-                <p>{address.city}, {address.county} {address.postalCode}</p>
+                <p>{address.street}</p>
+                <p>{address.city}, {address.county} {address.postal_code}</p>
                 <p>Tel: {address.phone}</p>
               </div>
 
@@ -304,7 +396,7 @@ export default function AddressesPage() {
                   <Edit2 className="h-4 w-4" />
                   Editează
                 </button>
-                {!address.isDefault && (
+                {!address.is_default && (
                   <>
                     <span className="text-sand">|</span>
                     <button

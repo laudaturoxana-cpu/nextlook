@@ -14,12 +14,27 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort') || 'relevance'
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const isBestseller = searchParams.get('is_bestseller')
+    const isFeatured = searchParams.get('is_featured')
+    const isNew = searchParams.get('is_new')
 
     let query = supabase.from('products').select('*', { count: 'exact' })
 
     // Apply filters
     if (category) {
       query = query.eq('category', category)
+    }
+
+    if (isBestseller === 'true') {
+      query = query.eq('is_bestseller', true)
+    }
+
+    if (isFeatured === 'true') {
+      query = query.eq('is_featured', true)
+    }
+
+    if (isNew === 'true') {
+      query = query.eq('is_new', true)
     }
 
     if (minPrice) {

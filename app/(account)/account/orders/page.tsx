@@ -1,110 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Package, ChevronRight, Clock, Truck, CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
 import { formatPrice, getOrderStatusColor, getOrderStatusText } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
 import { Order } from '@/types'
 import { cn } from '@/lib/utils'
-
-// Mock orders data
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    order_number: 'NL-2026-0127',
-    user_id: '1',
-    email: 'maria@example.com',
-    phone: '0722123456',
-    shipping_name: 'Maria Popescu',
-    shipping_address: 'Str. Exemplu nr. 10',
-    shipping_city: 'Brașov',
-    shipping_county: 'Brașov',
-    shipping_postal_code: '500001',
-    subtotal: 899,
-    shipping_cost: 0,
-    discount: 0,
-    total: 899,
-    payment_method: 'card',
-    payment_status: 'paid',
-    delivery_method: 'curier_rapid',
-    status: 'shipped',
-    stripe_payment_intent_id: null,
-    notes: null,
-    created_at: '2026-01-27T14:30:00Z',
-    updated_at: '2026-01-28T10:00:00Z',
-    order_items: [
-      {
-        id: '1',
-        order_id: '1',
-        product_id: '1',
-        product_name: 'Nike Air Max 90',
-        product_image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
-        size: '42',
-        color: 'Alb',
-        price: 449,
-        quantity: 1,
-        subtotal: 449,
-        created_at: '2026-01-27T14:30:00Z',
-      },
-      {
-        id: '2',
-        order_id: '1',
-        product_id: '2',
-        product_name: 'Adidas Ultraboost',
-        product_image: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
-        size: '42',
-        color: 'Negru',
-        price: 450,
-        quantity: 1,
-        subtotal: 450,
-        created_at: '2026-01-27T14:30:00Z',
-      },
-    ],
-  },
-  {
-    id: '2',
-    order_number: 'NL-2026-0098',
-    user_id: '1',
-    email: 'maria@example.com',
-    phone: '0722123456',
-    shipping_name: 'Maria Popescu',
-    shipping_address: 'Str. Exemplu nr. 10',
-    shipping_city: 'Brașov',
-    shipping_county: 'Brașov',
-    shipping_postal_code: '500001',
-    subtotal: 299,
-    shipping_cost: 15,
-    discount: 0,
-    total: 314,
-    payment_method: 'ramburs',
-    payment_status: 'paid',
-    delivery_method: 'curier_rapid',
-    status: 'delivered',
-    stripe_payment_intent_id: null,
-    notes: null,
-    created_at: '2026-01-15T10:00:00Z',
-    updated_at: '2026-01-17T14:00:00Z',
-    order_items: [
-      {
-        id: '3',
-        order_id: '2',
-        product_id: '3',
-        product_name: 'Zara Blazer Premium',
-        product_image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800',
-        size: 'M',
-        color: 'Bej',
-        price: 299,
-        quantity: 1,
-        subtotal: 299,
-        created_at: '2026-01-15T10:00:00Z',
-      },
-    ],
-  },
-]
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -124,7 +30,57 @@ const getStatusIcon = (status: string) => {
 }
 
 export default function OrdersPage() {
-  const orders = mockOrders
+  const router = useRouter()
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/login?redirect=/account/orders')
+      return
+    }
+
+    const fetchOrders = async () => {
+      try {
+        const response = await fetch('/api/orders')
+        const data = await response.json()
+        if (data.orders) {
+          setOrders(data.orders)
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchOrders()
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="container mx-auto px-4 lg:px-8 py-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-cream-100 rounded w-48" />
+          <div className="h-12 bg-cream-100 rounded w-64" />
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 space-y-4">
+                <div className="h-6 bg-cream-100 rounded w-1/3" />
+                <div className="flex gap-4">
+                  <div className="w-16 h-20 bg-cream-100 rounded" />
+                  <div className="w-16 h-20 bg-cream-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (orders.length === 0) {
     return (
@@ -202,7 +158,7 @@ export default function OrdersPage() {
                       <StatusIcon className="h-4 w-4" />
                       {getOrderStatusText(order.status)}
                     </div>
-                    <Link href={`/account/orders/${order.id}`}>
+                    <Link href={`/order-confirmation/${order.id}`}>
                       <Button variant="outline" size="sm">
                         Vezi Detalii
                         <ChevronRight className="h-4 w-4 ml-1" />
@@ -221,7 +177,7 @@ export default function OrdersPage() {
                       className="relative w-16 h-20 rounded-lg overflow-hidden bg-cream-50"
                     >
                       <Image
-                        src={item.product_image}
+                        src={item.product_image || '/images/placeholder.jpg'}
                         alt={item.product_name}
                         fill
                         className="object-cover"
