@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { generateOrderNumber } from '@/lib/utils'
 
@@ -11,7 +11,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
+    // Use regular client for auth check
     const supabase = await createClient()
+    // Use admin client for database operations (bypasses RLS)
+    const adminSupabase = createAdminClient()
     const body = await request.json()
 
     const {
@@ -48,8 +51,8 @@ export async function POST(request: NextRequest) {
       order_number: orderNumber,
     }
 
-    // Create order in database (matching schema.sql structure)
-    const { data: order, error: orderError } = await supabase
+    // Create order in database using admin client (bypasses RLS)
+    const { data: order, error: orderError } = await adminSupabase
       .from('orders')
       .insert({
         user_id: user?.id || null,
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to create order: ${orderError.message}`)
     }
 
-    // Create order items (matching schema.sql - no subtotal column)
+    // Create order items using admin client (bypasses RLS)
     const orderItems = items.map((item: any) => ({
       order_id: order.id,
       product_id: item.product_id,
@@ -84,14 +87,14 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }))
 
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await adminSupabase
       .from('order_items')
       .insert(orderItems)
 
     if (itemsError) {
       console.error('Error creating order items:', itemsError)
       // Rollback order
-      await supabase.from('orders').delete().eq('id', order.id)
+      await adminSupabase.from('orders').delete().eq('id', order.id)
       throw new Error(`Failed to create order items: ${itemsError.message}`)
     }
 
@@ -108,7 +111,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Update order with Stripe payment intent ID
-      await supabase
+      await adminSupabase
         .from('orders')
         .update({ stripe_payment_intent_id: paymentIntent.id })
         .eq('id', order.id)
@@ -125,10 +128,14 @@ export async function POST(request: NextRequest) {
       orderId: order.id,
       orderNumber,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Checkout error:', error)
     return NextResponse.json(
-      { error: 'Checkout failed' },
+      {
+        error: 'Checkout failed',
+        details: error?.message || String(error),
+        code: error?.code
+      },
       { status: 500 }
     )
   }
