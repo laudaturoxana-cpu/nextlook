@@ -9,6 +9,8 @@ import { Product } from '@/types'
 import { formatPrice, calculateDiscount } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { useCart } from '@/hooks/useCart'
+import { useWishlist } from '@/hooks/useWishlist'
+import toast from 'react-hot-toast'
 
 interface ProductCardProps {
   product: Product
@@ -18,6 +20,8 @@ interface ProductCardProps {
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const { addItem } = useCart()
+  const { toggleItem, isInWishlist } = useWishlist()
+  const isWishlisted = isInWishlist(product.id)
 
   const discount = product.old_price
     ? calculateDiscount(product.price, product.old_price)
@@ -27,6 +31,13 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     e.preventDefault()
     e.stopPropagation()
     addItem(product, product.sizes?.[0] || null, product.colors?.[0]?.name || null)
+  }
+
+  const handleToggleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleItem(product)
+    toast.success(isWishlisted ? 'Eliminat din favorite!' : 'Adăugat la favorite!')
   }
 
   return (
@@ -69,14 +80,13 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
             {/* Wishlist Button */}
             <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-              }}
-              className="absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:text-gold"
-              aria-label="Adaugă la favorite"
+              onClick={handleToggleWishlist}
+              className={`absolute top-3 right-3 p-2 bg-white/90 rounded-full shadow-sm transition-all hover:bg-white ${
+                isWishlisted ? 'opacity-100 text-red-500' : 'opacity-0 group-hover:opacity-100 hover:text-gold'
+              }`}
+              aria-label={isWishlisted ? 'Elimină de la favorite' : 'Adaugă la favorite'}
             >
-              <Heart className="h-4 w-4" />
+              <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-red-500' : ''}`} />
             </button>
 
             {/* Hover Actions */}

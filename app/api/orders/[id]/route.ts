@@ -31,7 +31,39 @@ export async function GET(
       throw error
     }
 
-    return NextResponse.json({ order })
+    // Transform data to match expected format
+    // The database uses shipping_address as JSONB, so we need to extract the fields
+    const shippingAddress = order.shipping_address as {
+      full_name?: string
+      address?: string
+      city?: string
+      county?: string
+      postal_code?: string
+      delivery_method?: string
+      order_number?: string
+    } | null
+
+    const transformedOrder = {
+      ...order,
+      // Map guest fields to expected names
+      email: order.guest_email,
+      phone: order.guest_phone,
+      // Extract shipping details from JSONB
+      order_number: shippingAddress?.order_number || order.id.slice(0, 8).toUpperCase(),
+      shipping_name: shippingAddress?.full_name || '',
+      shipping_address: shippingAddress?.address || '',
+      shipping_city: shippingAddress?.city || '',
+      shipping_county: shippingAddress?.county || '',
+      shipping_postal_code: shippingAddress?.postal_code || '',
+      delivery_method: shippingAddress?.delivery_method || 'curier_rapid',
+      // Transform order items to add subtotal
+      order_items: order.order_items?.map((item: any) => ({
+        ...item,
+        subtotal: item.price * item.quantity,
+      })),
+    }
+
+    return NextResponse.json({ order: transformedOrder })
   } catch (error) {
     console.error('Error fetching order:', error)
     return NextResponse.json(

@@ -34,30 +34,34 @@ export async function POST(request: NextRequest) {
     // Get current user (optional - allows guest checkout)
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Generate order number
+    // Generate order number for reference
     const orderNumber = generateOrderNumber()
 
-    // Create order in database
+    // Create shipping address as JSONB (matching the actual database schema)
+    const shippingAddress = {
+      full_name: fullName,
+      address: address,
+      city: city,
+      county: county,
+      postal_code: postalCode,
+      delivery_method: deliveryMethod,
+      order_number: orderNumber,
+    }
+
+    // Create order in database (matching schema.sql structure)
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        order_number: orderNumber,
         user_id: user?.id || null,
-        email,
-        phone,
-        shipping_name: fullName,
-        shipping_address: address,
-        shipping_city: city,
-        shipping_county: county,
-        shipping_postal_code: postalCode,
+        guest_email: email,
+        guest_phone: phone,
+        status: 'pending',
         subtotal,
         shipping_cost: shippingCost,
-        discount: 0,
         total,
+        shipping_address: shippingAddress,
         payment_method: paymentMethod,
         payment_status: 'pending',
-        delivery_method: deliveryMethod,
-        status: 'pending',
         notes,
       })
       .select()
@@ -65,20 +69,19 @@ export async function POST(request: NextRequest) {
 
     if (orderError) {
       console.error('Error creating order:', orderError)
-      throw new Error('Failed to create order')
+      throw new Error(`Failed to create order: ${orderError.message}`)
     }
 
-    // Create order items
+    // Create order items (matching schema.sql - no subtotal column)
     const orderItems = items.map((item: any) => ({
       order_id: order.id,
       product_id: item.product_id,
       product_name: item.product_name,
       product_image: item.product_image,
-      size: item.size,
-      color: item.color,
+      size: item.size || null,
+      color: item.color || null,
       price: item.price,
       quantity: item.quantity,
-      subtotal: item.price * item.quantity,
     }))
 
     const { error: itemsError } = await supabase
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
       console.error('Error creating order items:', itemsError)
       // Rollback order
       await supabase.from('orders').delete().eq('id', order.id)
-      throw new Error('Failed to create order items')
+      throw new Error(`Failed to create order items: ${itemsError.message}`)
     }
 
     // If payment is by card, create Stripe PaymentIntent

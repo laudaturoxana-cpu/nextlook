@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronDown, SlidersHorizontal } from 'lucide-react'
@@ -15,20 +15,13 @@ const categories = [
   { value: 'noutati', label: 'Noutăți' },
 ]
 
-const brands = ['Nike', 'Adidas', 'Puma', 'Zara', 'H&M', 'Mango', 'New Balance']
+// Fallback brands if API fails
+const fallbackBrands = ['Nike', 'Adidas', 'Puma', 'Zara', 'H&M', 'Mango', 'New Balance']
 
 const sizes = {
   clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   shoes: ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
 }
-
-const sortOptions = [
-  { value: 'relevance', label: 'Relevante' },
-  { value: 'price_asc', label: 'Preț crescător' },
-  { value: 'price_desc', label: 'Preț descrescător' },
-  { value: 'newest', label: 'Cele mai noi' },
-  { value: 'bestseller', label: 'Cele mai vândute' },
-]
 
 interface ProductFiltersProps {
   onMobileClose?: () => void
@@ -40,13 +33,34 @@ export default function ProductFilters({ onMobileClose, isMobile }: ProductFilte
   const searchParams = useSearchParams()
 
   const [expandedSections, setExpandedSections] = useState<string[]>(['category', 'price'])
+  const [brands, setBrands] = useState<string[]>(fallbackBrands)
+  const [isLoadingBrands, setIsLoadingBrands] = useState(true)
 
   const currentCategory = searchParams.get('category') || ''
-  const currentSort = searchParams.get('sort') || 'relevance'
   const currentBrands = searchParams.get('brands')?.split(',') || []
   const currentSizes = searchParams.get('sizes')?.split(',') || []
   const minPrice = searchParams.get('minPrice') || ''
   const maxPrice = searchParams.get('maxPrice') || ''
+
+  // Fetch brands from API
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch('/api/products/brands')
+        const data = await response.json()
+        if (data.brands && data.brands.length > 0) {
+          setBrands(data.brands)
+        }
+      } catch (error) {
+        console.error('Error fetching brands:', error)
+        // Keep fallback brands
+      } finally {
+        setIsLoadingBrands(false)
+      }
+    }
+
+    fetchBrands()
+  }, [])
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev =>
@@ -198,17 +212,25 @@ export default function ProductFilters({ onMobileClose, isMobile }: ProductFilte
                 className="overflow-hidden"
               >
                 <div className="pt-2 space-y-2">
-                  {brands.map((brand) => (
-                    <label key={brand} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={currentBrands.includes(brand)}
-                        onChange={() => toggleArrayFilter('brands', brand, currentBrands)}
-                        className="w-4 h-4 rounded border-sand text-gold focus:ring-gold"
-                      />
-                      <span className="text-sm text-text-secondary">{brand}</span>
-                    </label>
-                  ))}
+                  {isLoadingBrands ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="h-6 bg-cream-100 rounded animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (
+                    brands.map((brand) => (
+                      <label key={brand} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={currentBrands.includes(brand)}
+                          onChange={() => toggleArrayFilter('brands', brand, currentBrands)}
+                          className="w-4 h-4 rounded border-sand text-gold focus:ring-gold"
+                        />
+                        <span className="text-sm text-text-secondary">{brand}</span>
+                      </label>
+                    ))
+                  )}
                 </div>
               </motion.div>
             )}

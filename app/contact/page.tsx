@@ -67,12 +67,27 @@ export default function ContactPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulare trimitere
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
 
-    toast.success('Mesajul a fost trimis! Îți vom răspunde în cel mai scurt timp.')
-    setFormData({ name: '', email: '', subject: '', message: '' })
-    setIsLoading(false)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message')
+      }
+
+      toast.success('Mesajul a fost trimis! Îți vom răspunde în cel mai scurt timp.')
+      setFormData({ name: '', email: '', subject: '', message: '' })
+    } catch (error) {
+      console.error('Error sending message:', error)
+      toast.error('A apărut o eroare. Te rugăm să încerci din nou.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

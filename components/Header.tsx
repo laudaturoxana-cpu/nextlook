@@ -168,7 +168,7 @@ export default function Header() {
                         Adresele mele
                       </Link>
                       <Link
-                        href="/account"
+                        href="/account/wishlist"
                         className="flex items-center gap-3 px-4 py-3 text-sm text-text hover:bg-cream-50 transition-colors"
                         onClick={() => setIsUserMenuOpen(false)}
                       >

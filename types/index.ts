@@ -155,3 +155,12 @@ export interface ProductFilters {
   colors?: string[];
   sortBy?: 'relevance' | 'price_asc' | 'price_desc' | 'newest' | 'bestseller';
 }
+
+// Wishlist Types
+export interface WishlistItem {
+  id: string;
+  user_id: string;
+  product_id: string;
+  created_at: string;
+  product?: Product;
+}

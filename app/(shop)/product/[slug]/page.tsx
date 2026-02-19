@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -20,175 +20,20 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import ProductCard from '@/components/ProductCard'
 import { useCart } from '@/hooks/useCart'
+import { useWishlist } from '@/hooks/useWishlist'
 import { formatPrice, calculateDiscount } from '@/lib/utils'
 import { Product } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 
-// Mock product data
-const mockProduct: Product = {
-  id: '1',
-  name: 'Nike Air Max 90 Essential White/Black',
-  slug: 'nike-air-max-90-essential-white-black',
-  description: `Clasicii sneakers Nike Air Max 90 sunt reinventați cu materiale premium și detalii actualizate. Amortizarea Air Max vizibilă în călcâi oferă confort excepțional, în timp ce designul iconic își păstrează stilul atemporal.
-
-Caracteristici:
-• Upper din piele și materiale sintetice pentru durabilitate
-• Unitate Air Max vizibilă în călcâi pentru amortizare
-• Talpă intermediară din spumă pentru confort
-• Talpă exterioară din cauciuc waffle pentru tracțiune
-• Design clasic din 1990, actualizat
-
-Fit: Se potrivește conform mărimii standard. Recomandăm să comanzi mărimea obișnuită.`,
-  price: 449,
-  old_price: 599,
-  category: 'sneakers',
-  subcategory: 'running',
-  brand: 'Nike',
-  sizes: ['38', '39', '40', '41', '42', '43', '44'],
-  colors: [
-    { name: 'Alb/Negru', hex: '#FFFFFF' },
-    { name: 'Negru', hex: '#000000' },
-    { name: 'Gri', hex: '#808080' },
-  ],
-  images: [
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
-    'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
-    'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=800',
-    'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=800',
-  ],
-  stock: 5,
-  is_featured: true,
-  is_bestseller: true,
-  is_new: false,
-  rating: 4.8,
-  reviews_count: 124,
-  styling_suggestions: ['2', '5'],
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+interface Review {
+  id: string
+  user_name: string
+  rating: number
+  comment: string
+  is_approved: boolean
+  created_at: string
 }
-
-const mockReviews = [
-  {
-    id: '1',
-    user_name: 'Maria T.',
-    rating: 5,
-    comment: 'Super calitate! Exact cum arătau în poze. Livrare rapidă și ambalaj impecabil.',
-    verified: true,
-    date: '15 ianuarie 2026',
-  },
-  {
-    id: '2',
-    user_name: 'Andrei M.',
-    rating: 5,
-    comment: 'Cei mai comozi sneakers pe care i-am avut. Recomand!',
-    verified: true,
-    date: '12 ianuarie 2026',
-  },
-  {
-    id: '3',
-    user_name: 'Elena P.',
-    rating: 4,
-    comment: 'Foarte frumoși, mărimea e corectă. Singura problemă - au venit într-o cutie ușor deteriorată.',
-    verified: true,
-    date: '8 ianuarie 2026',
-  },
-]
-
-const mockSimilarProducts: Product[] = [
-  {
-    id: '2',
-    name: 'Adidas Ultraboost 22 Running Shoes',
-    slug: 'adidas-ultraboost-22-running',
-    description: 'Confort maxim pentru alergare',
-    price: 599,
-    old_price: null,
-    category: 'sneakers',
-    subcategory: 'running',
-    brand: 'Adidas',
-    sizes: ['39', '40', '41', '42', '43'],
-    colors: [{ name: 'Negru', hex: '#000000' }],
-    images: ['https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800'],
-    stock: 8,
-    is_featured: true,
-    is_bestseller: true,
-    is_new: true,
-    rating: 4.9,
-    reviews_count: 89,
-    styling_suggestions: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '6',
-    name: 'Nike Air Force 1 Low White',
-    slug: 'nike-air-force-1-low-white',
-    description: 'Clasicul sneaker alb',
-    price: 499,
-    old_price: null,
-    category: 'sneakers',
-    subcategory: 'lifestyle',
-    brand: 'Nike',
-    sizes: ['36', '37', '38', '39', '40', '41', '42', '43', '44'],
-    colors: [{ name: 'Alb', hex: '#FFFFFF' }],
-    images: ['https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=800'],
-    stock: 18,
-    is_featured: true,
-    is_bestseller: true,
-    is_new: false,
-    rating: 4.9,
-    reviews_count: 234,
-    styling_suggestions: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '8',
-    name: 'New Balance 574 Classic',
-    slug: 'new-balance-574-classic',
-    description: 'Sneakers retro pentru confort zilnic',
-    price: 429,
-    old_price: null,
-    category: 'sneakers',
-    subcategory: 'lifestyle',
-    brand: 'New Balance',
-    sizes: ['38', '39', '40', '41', '42', '43'],
-    colors: [{ name: 'Gri', hex: '#808080' }],
-    images: ['https://images.unsplash.com/photo-1539185441755-769473a23570?w=800'],
-    stock: 10,
-    is_featured: true,
-    is_bestseller: true,
-    is_new: false,
-    rating: 4.7,
-    reviews_count: 92,
-    styling_suggestions: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Puma RS-X Bold Sneakers',
-    slug: 'puma-rs-x-bold-sneakers',
-    description: 'Sneakers retro cu design îndrăzneț',
-    price: 379,
-    old_price: 499,
-    category: 'sneakers',
-    subcategory: 'lifestyle',
-    brand: 'Puma',
-    sizes: ['38', '39', '40', '41', '42'],
-    colors: [{ name: 'Multicolor', hex: '#FF6B6B' }],
-    images: ['https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=800'],
-    stock: 3,
-    is_featured: true,
-    is_bestseller: true,
-    is_new: false,
-    rating: 4.7,
-    reviews_count: 67,
-    styling_suggestions: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-]
 
 const tabs = [
   { id: 'description', label: 'Descriere' },
@@ -200,20 +45,57 @@ const tabs = [
 export default function ProductPage() {
   const params = useParams()
   const { addItem } = useCart()
+  const { toggleItem, isInWishlist } = useWishlist()
+
+  const [product, setProduct] = useState<Product | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
-  const [selectedColor, setSelectedColor] = useState(mockProduct.colors[0]?.name || null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('description')
 
-  const product = mockProduct // În producție, fetch din Supabase bazat pe params.slug
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${params.slug}`)
+        const data = await response.json()
 
-  const discount = product.old_price
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch product')
+        }
+
+        setProduct(data.product)
+        setReviews(data.reviews || [])
+        setSimilarProducts(data.similarProducts || [])
+
+        // Set default color if available
+        if (data.product.colors && data.product.colors.length > 0) {
+          setSelectedColor(data.product.colors[0].name)
+        }
+      } catch (err) {
+        console.error('Error fetching product:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch product')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (params.slug) {
+      fetchProduct()
+    }
+  }, [params.slug])
+
+  const discount = product?.old_price
     ? calculateDiscount(product.price, product.old_price)
     : 0
 
   const handleAddToCart = () => {
+    if (!product) return
     if (!selectedSize) {
       toast.error('Te rugăm să selectezi o mărime')
       return
@@ -223,12 +105,79 @@ export default function ProductPage() {
   }
 
   const handleBuyNow = () => {
+    if (!product) return
     if (!selectedSize) {
       toast.error('Te rugăm să selectezi o mărime')
       return
     }
     addItem(product, selectedSize, selectedColor, quantity)
     window.location.href = '/checkout'
+  }
+
+  const formatReviewDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ro-RO', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-cream">
+        <div className="container mx-auto px-4 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-4 bg-cream-100 rounded w-64 mb-8" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              <div className="space-y-4">
+                <div className="aspect-square bg-cream-100 rounded-2xl" />
+                <div className="flex gap-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="w-20 h-20 bg-cream-100 rounded-xl" />
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-6">
+                <div className="h-4 bg-cream-100 rounded w-24" />
+                <div className="h-8 bg-cream-100 rounded w-3/4" />
+                <div className="h-6 bg-cream-100 rounded w-32" />
+                <div className="h-12 bg-cream-100 rounded w-48" />
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-10 h-10 bg-cream-100 rounded-full" />
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="w-12 h-12 bg-cream-100 rounded-xl" />
+                  ))}
+                </div>
+                <div className="h-12 bg-cream-100 rounded-xl" />
+                <div className="h-12 bg-cream-100 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-display text-display-md text-text mb-4">
+            Produsul nu a fost găsit
+          </h1>
+          <p className="text-text-secondary mb-8">
+            {error || 'Ne pare rău, acest produs nu există.'}
+          </p>
+          <Link href="/shop">
+            <Button>Vezi toate produsele</Button>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -261,7 +210,7 @@ export default function ProductPage() {
               className="relative aspect-square rounded-2xl overflow-hidden bg-white"
             >
               <Image
-                src={product.images[selectedImage]}
+                src={product.images[selectedImage] || '/images/placeholder.jpg'}
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -278,31 +227,42 @@ export default function ProductPage() {
               </div>
 
               {/* Wishlist */}
-              <button className="absolute top-4 right-4 p-3 bg-white rounded-full shadow-soft hover:bg-cream-50 transition-colors">
-                <Heart className="h-5 w-5" />
+              <button
+                onClick={() => {
+                  toggleItem(product)
+                  toast.success(isInWishlist(product.id) ? 'Eliminat din favorite!' : 'Adăugat la favorite!')
+                }}
+                className={cn(
+                  "absolute top-4 right-4 p-3 bg-white rounded-full shadow-soft transition-colors",
+                  isInWishlist(product.id) ? "text-red-500 hover:bg-red-50" : "hover:bg-cream-50 hover:text-gold"
+                )}
+              >
+                <Heart className={cn("h-5 w-5", isInWishlist(product.id) && "fill-red-500")} />
               </button>
             </motion.div>
 
             {/* Thumbnails */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={cn(
-                    'relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-colors',
-                    selectedImage === index ? 'border-gold' : 'border-transparent hover:border-sand'
-                  )}
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {product.images.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {product.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={cn(
+                      'relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-colors',
+                      selectedImage === index ? 'border-gold' : 'border-transparent hover:border-sand'
+                    )}
+                  >
+                    <Image
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -328,7 +288,7 @@ export default function ProductPage() {
                       key={i}
                       className={cn(
                         'h-4 w-4',
-                        i < Math.floor(product.rating)
+                        i < Math.floor(product.rating || 0)
                           ? 'text-gold fill-gold'
                           : 'text-sand'
                       )}
@@ -358,7 +318,7 @@ export default function ProductPage() {
             </div>
 
             {/* Color Selection */}
-            {product.colors.length > 0 && (
+            {product.colors && product.colors.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-text mb-3">
                   Culoare: <span className="text-text-secondary">{selectedColor}</span>
@@ -383,32 +343,34 @@ export default function ProductPage() {
             )}
 
             {/* Size Selection */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-text">
-                  Mărime: <span className="text-text-secondary">{selectedSize || 'Selectează'}</span>
-                </p>
-                <button className="text-sm text-gold hover:underline">
-                  Ghid mărimi
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={cn(
-                      'min-w-[48px] h-12 px-4 rounded-xl border-2 font-medium transition-all',
-                      selectedSize === size
-                        ? 'border-gold bg-gold text-white'
-                        : 'border-sand text-text hover:border-gold'
-                    )}
-                  >
-                    {size}
+            {product.sizes && product.sizes.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium text-text">
+                    Mărime: <span className="text-text-secondary">{selectedSize || 'Selectează'}</span>
+                  </p>
+                  <button className="text-sm text-gold hover:underline">
+                    Ghid mărimi
                   </button>
-                ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={cn(
+                        'min-w-[48px] h-12 px-4 rounded-xl border-2 font-medium transition-all',
+                        selectedSize === size
+                          ? 'border-gold bg-gold text-white'
+                          : 'border-sand text-text hover:border-gold'
+                      )}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div>
@@ -438,9 +400,20 @@ export default function ProductPage() {
               <Button onClick={handleBuyNow} variant="secondary" className="w-full" size="lg">
                 Cumpără Acum
               </Button>
-              <button className="w-full flex items-center justify-center gap-2 py-3 text-text-secondary hover:text-gold transition-colors">
-                <Heart className="h-5 w-5" />
-                Salvează la Favorite
+              <button
+                onClick={() => {
+                  if (product) {
+                    toggleItem(product)
+                    toast.success(isInWishlist(product.id) ? 'Eliminat din favorite!' : 'Adăugat la favorite!')
+                  }
+                }}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-3 transition-colors",
+                  product && isInWishlist(product.id) ? "text-red-500 hover:text-red-600" : "text-text-secondary hover:text-gold"
+                )}
+              >
+                <Heart className={cn("h-5 w-5", product && isInWishlist(product.id) && "fill-red-500")} />
+                {product && isInWishlist(product.id) ? 'Salvat la Favorite' : 'Salvează la Favorite'}
               </button>
             </div>
 
@@ -489,7 +462,7 @@ export default function ProductPage() {
                 )}
               >
                 {tab.label}
-                {tab.id === 'reviews' && ` (${product.reviews_count})`}
+                {tab.id === 'reviews' && ` (${reviews.length})`}
               </button>
             ))}
           </div>
@@ -583,51 +556,55 @@ export default function ProductPage() {
                 {/* Rating Summary */}
                 <div className="flex items-center gap-6 pb-6 border-b border-sand">
                   <div className="text-center">
-                    <p className="font-display text-5xl text-gold">{product.rating}</p>
+                    <p className="font-display text-5xl text-gold">{product.rating || 0}</p>
                     <div className="flex items-center justify-center gap-1 my-2">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
                           className={cn(
                             'h-4 w-4',
-                            i < Math.floor(product.rating) ? 'text-gold fill-gold' : 'text-sand'
+                            i < Math.floor(product.rating || 0) ? 'text-gold fill-gold' : 'text-sand'
                           )}
                         />
                       ))}
                     </div>
-                    <p className="text-sm text-text-secondary">{product.reviews_count} recenzii</p>
+                    <p className="text-sm text-text-secondary">{reviews.length} recenzii</p>
                   </div>
                 </div>
 
                 {/* Reviews List */}
-                <div className="space-y-6">
-                  {mockReviews.map((review) => (
-                    <div key={review.id} className="pb-6 border-b border-sand last:border-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={cn(
-                                'h-4 w-4',
-                                i < review.rating ? 'text-gold fill-gold' : 'text-sand'
-                              )}
-                            />
-                          ))}
-                        </div>
-                        {review.verified && (
+                {reviews.length > 0 ? (
+                  <div className="space-y-6">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="pb-6 border-b border-sand last:border-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={cn(
+                                  'h-4 w-4',
+                                  i < review.rating ? 'text-gold fill-gold' : 'text-sand'
+                                )}
+                              />
+                            ))}
+                          </div>
                           <Badge variant="default" className="text-xs">Cumpărare verificată</Badge>
-                        )}
+                        </div>
+                        <p className="text-text mb-2">{review.comment}</p>
+                        <div className="flex items-center gap-2 text-sm text-text-secondary">
+                          <span className="font-medium">{review.user_name}</span>
+                          <span>·</span>
+                          <span>{formatReviewDate(review.created_at)}</span>
+                        </div>
                       </div>
-                      <p className="text-text mb-2">{review.comment}</p>
-                      <div className="flex items-center gap-2 text-sm text-text-secondary">
-                        <span className="font-medium">{review.user_name}</span>
-                        <span>·</span>
-                        <span>{review.date}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-text-secondary text-center py-8">
+                    Nu există recenzii pentru acest produs încă.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -635,14 +612,16 @@ export default function ProductPage() {
       </section>
 
       {/* Similar Products */}
-      <section className="container mx-auto px-4 lg:px-8 py-12">
-        <h2 className="section-title mb-8">PRODUSE SIMILARE</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {mockSimilarProducts.map((product, index) => (
-            <ProductCard key={product.id} product={product} index={index} />
-          ))}
-        </div>
-      </section>
+      {similarProducts.length > 0 && (
+        <section className="container mx-auto px-4 lg:px-8 py-12">
+          <h2 className="section-title mb-8">PRODUSE SIMILARE</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {similarProducts.map((similarProduct, index) => (
+              <ProductCard key={similarProduct.id} product={similarProduct} index={index} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
