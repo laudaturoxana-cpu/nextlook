@@ -77,39 +77,6 @@ function paymentLabel(method: string) {
   return method
 }
 
-function itemsTable(items: OrderEmailData['items']) {
-  const rows = items.map(item => `
-    <tr>
-      <td style="padding: 10px 0; border-bottom: 1px solid #F0EAE0; color: #2D2D2D; font-size: 15px;">
-        ${item.product_name}
-        ${item.size ? `<span style="color:#736B66; font-size:13px;"> — mărime: ${item.size}</span>` : ''}
-        ${item.color ? `<span style="color:#736B66; font-size:13px;"> — culoare: ${item.color}</span>` : ''}
-      </td>
-      <td style="padding: 10px 0; border-bottom: 1px solid #F0EAE0; text-align: center; color: #736B66; font-size: 15px;">x${item.quantity}</td>
-      <td style="padding: 10px 0; border-bottom: 1px solid #F0EAE0; text-align: right; color: #2D2D2D; font-size: 15px; font-weight: bold;">${(item.price * item.quantity).toFixed(2)} RON</td>
-    </tr>
-  `).join('')
-
-  return `
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
-      <tr>
-        <th style="text-align: left; color: #736B66; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 2px solid #E8DCC8;">Produs</th>
-        <th style="text-align: center; color: #736B66; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 2px solid #E8DCC8;">Cant.</th>
-        <th style="text-align: right; color: #736B66; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 2px solid #E8DCC8;">Preț</th>
-      </tr>
-      ${rows}
-      <tr>
-        <td colspan="2" style="padding-top: 12px; color: #736B66; font-size: 14px;">Transport</td>
-        <td style="padding-top: 12px; text-align: right; color: #2D2D2D; font-size: 14px;">${Number(arguments[1]) === 0 ? 'Gratuit' : Number(arguments[1]).toFixed(2) + ' RON'}</td>
-      </tr>
-      <tr>
-        <td colspan="2" style="padding-top: 8px; color: #2D2D2D; font-size: 17px; font-weight: bold;">TOTAL</td>
-        <td style="padding-top: 8px; text-align: right; color: #A58625; font-size: 17px; font-weight: bold;">${Number(arguments[2]).toFixed(2)} RON</td>
-      </tr>
-    </table>
-  `
-}
-
 // ─── Email pentru PROPRIETARĂ ─────────────────────────────────────────────────
 
 export async function sendOwnerOrderNotification(data: OrderEmailData) {
@@ -182,6 +149,11 @@ export async function sendOwnerOrderNotification(data: OrderEmailData) {
             <td colspan="2" style="padding-top: 12px; color: #736B66; font-size: 14px;">Transport</td>
             <td style="padding-top: 12px; text-align: right; color: #2D2D2D; font-size: 14px;">${data.shippingCost === 0 ? 'Gratuit' : data.shippingCost.toFixed(2) + ' RON'}</td>
           </tr>
+          ${data.paymentMethod === 'ramburs' ? `
+          <tr>
+            <td colspan="2" style="padding-top: 8px; color: #736B66; font-size: 14px;">Taxă ramburs</td>
+            <td style="padding-top: 8px; text-align: right; color: #2D2D2D; font-size: 14px;">${(data.total - data.subtotal - data.shippingCost).toFixed(2)} RON</td>
+          </tr>` : ''}
           <tr>
             <td colspan="2" style="padding-top: 8px; color: #2D2D2D; font-size: 17px; font-weight: bold;">TOTAL</td>
             <td style="padding-top: 8px; text-align: right; color: #A58625; font-size: 17px; font-weight: bold;">${data.total.toFixed(2)} RON</td>
@@ -267,6 +239,11 @@ export async function sendCustomerOrderConfirmation(data: OrderEmailData) {
             <td colspan="2" style="padding-top: 12px; color: #736B66; font-size: 14px;">Transport</td>
             <td style="padding-top: 12px; text-align: right; color: #2D2D2D; font-size: 14px;">${data.shippingCost === 0 ? 'Gratuit' : data.shippingCost.toFixed(2) + ' RON'}</td>
           </tr>
+          ${data.paymentMethod === 'ramburs' ? `
+          <tr>
+            <td colspan="2" style="padding-top: 8px; color: #736B66; font-size: 14px;">Taxă ramburs</td>
+            <td style="padding-top: 8px; text-align: right; color: #2D2D2D; font-size: 14px;">${(data.total - data.subtotal - data.shippingCost).toFixed(2)} RON</td>
+          </tr>` : ''}
           <tr>
             <td colspan="2" style="padding-top: 8px; color: #2D2D2D; font-size: 17px; font-weight: bold;">TOTAL</td>
             <td style="padding-top: 8px; text-align: right; color: #A58625; font-size: 17px; font-weight: bold;">${data.total.toFixed(2)} RON</td>
