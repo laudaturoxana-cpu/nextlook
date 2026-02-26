@@ -108,11 +108,11 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
       phoneNumber: recipientPhone.replace(/\s/g, ''),
     },
     service: {
-      serviceId: 1, // DPD Classic (24-48h)
+      serviceId: 2505, // DPD STANDARD
       pickupDate: pickupDateStr,
     },
     content: {
-      parcels: Array.from({ length: parcelsCount }, () => ({ weight: 1 })),
+      parcels: Array.from({ length: parcelsCount }, (_, i) => ({ seqNo: i + 1, weight: 1 })),
       totalWeight: parcelsCount,
       contents: `Comanda ${orderNumber} - produse vestimentare`,
       package: 'BOX',
