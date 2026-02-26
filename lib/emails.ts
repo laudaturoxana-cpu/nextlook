@@ -67,7 +67,7 @@ interface OrderEmailData {
 function deliveryLabel(method: string) {
   if (method === 'curier_rapid') return 'Curier rapid (DPD)'
   if (method === 'curier_gratuit') return 'Curier gratuit (DPD)'
-  if (method === 'ridicare_personala') return 'Ridicare personală din Brașov'
+  if (method === 'ridicare_personala' || method === 'ridicare') return 'Ridicare personală din Brașov'
   return method
 }
 
