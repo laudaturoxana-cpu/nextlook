@@ -75,10 +75,15 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to create order: ${orderError.message}`)
     }
 
+    // Validate product IDs - only use UUID-format IDs that exist in the database
+    const isValidUUID = (id: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
     // Create order items using admin client (bypasses RLS)
+    // If product_id is invalid (e.g. old mock data), set to null
     const orderItems = items.map((item: any) => ({
       order_id: order.id,
-      product_id: item.product_id,
+      product_id: isValidUUID(item.product_id) ? item.product_id : null,
       product_name: item.product_name,
       product_image: item.product_image,
       size: item.size || null,
