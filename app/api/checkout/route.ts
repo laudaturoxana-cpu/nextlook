@@ -3,6 +3,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { generateOrderNumber } from '@/lib/utils'
 import { createDPDShipment } from '@/lib/dpd'
+import { sendOwnerOrderNotification, sendCustomerOrderConfirmation } from '@/lib/emails'
 
 export const dynamic = 'force-dynamic'
 
@@ -144,6 +145,33 @@ export async function POST(request: NextRequest) {
         console.error('DPD shipment error (order still created):', dpdError?.message)
       }
     }
+
+    // Send email notifications (fire-and-forget, don't fail order if email fails)
+    const emailData = {
+      orderNumber,
+      customerName: fullName,
+      customerEmail: email,
+      customerPhone: phone,
+      address,
+      city,
+      county,
+      postalCode,
+      deliveryMethod,
+      paymentMethod,
+      items,
+      subtotal,
+      shippingCost,
+      total,
+      awbNumber,
+      notes,
+    }
+
+    Promise.all([
+      sendOwnerOrderNotification(emailData),
+      sendCustomerOrderConfirmation(emailData),
+    ]).catch(emailError => {
+      console.error('Email notification error (order still created):', emailError)
+    })
 
     // If payment is by card, create Stripe PaymentIntent
     if (paymentMethod === 'card') {
