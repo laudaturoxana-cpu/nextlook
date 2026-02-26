@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { generateOrderNumber } from '@/lib/utils'
+import { createDPDShipment } from '@/lib/dpd'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,6 +104,47 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to create order items: ${itemsError.message}`)
     }
 
+    // Generate DPD AWB for courier deliveries (not for pickup)
+    let awbNumber: string | null = null
+    let dpdShipmentId: number | null = null
+
+    if (deliveryMethod === 'curier_rapid' || deliveryMethod === 'curier_gratuit') {
+      try {
+        const dpdResult = await createDPDShipment({
+          recipientName: fullName,
+          recipientPhone: phone,
+          recipientCity: city,
+          recipientAddress: address,
+          recipientPostCode: postalCode,
+          total,
+          paymentMethod,
+          orderNumber,
+          parcelsCount: items.length || 1,
+        })
+
+        awbNumber = dpdResult.awbNumber
+        dpdShipmentId = dpdResult.shipmentId
+
+        // Save AWB to order's shipping_address JSONB
+        await adminSupabase
+          .from('orders')
+          .update({
+            shipping_address: {
+              ...shippingAddress,
+              awb_number: awbNumber,
+              dpd_shipment_id: dpdShipmentId,
+            },
+            status: 'confirmed',
+          })
+          .eq('id', order.id)
+
+        console.log(`DPD AWB generated: ${awbNumber} for order ${orderNumber}`)
+      } catch (dpdError: any) {
+        // Log DPD error but don't fail the order
+        console.error('DPD shipment error (order still created):', dpdError?.message)
+      }
+    }
+
     // If payment is by card, create Stripe PaymentIntent
     if (paymentMethod === 'card') {
       const paymentIntent = await stripe.paymentIntents.create({
@@ -125,13 +167,15 @@ export async function POST(request: NextRequest) {
         orderId: order.id,
         orderNumber,
         clientSecret: paymentIntent.client_secret,
+        awbNumber,
       })
     }
 
-    // For cash on delivery (ramburs), just return success
+    // For ramburs or pickup, return success with AWB if generated
     return NextResponse.json({
       orderId: order.id,
       orderNumber,
+      awbNumber,
     })
   } catch (error: any) {
     console.error('Checkout error:', error)

@@ -41,6 +41,8 @@ export async function GET(
       postal_code?: string
       delivery_method?: string
       order_number?: string
+      awb_number?: string
+      dpd_shipment_id?: number
     } | null
 
     const transformedOrder = {
@@ -56,6 +58,8 @@ export async function GET(
       shipping_county: shippingAddress?.county || '',
       shipping_postal_code: shippingAddress?.postal_code || '',
       delivery_method: shippingAddress?.delivery_method || 'curier_rapid',
+      awb_number: shippingAddress?.awb_number || null,
+      dpd_shipment_id: shippingAddress?.dpd_shipment_id || null,
       // Transform order items to add subtotal
       order_items: order.order_items?.map((item: any) => ({
         ...item,
