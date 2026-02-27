@@ -17,8 +17,8 @@ import { Select } from '@/components/ui/Select'
 import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
-const FREE_SHIPPING_THRESHOLD = 200
-const SHIPPING_COST_RAPID = 15
+const FREE_SHIPPING_THRESHOLD = 300
+const SHIPPING_COST_RAPID = 20
 const SHIPPING_COST_RAMBURS = 10
 
 const checkoutSchema = z.object({

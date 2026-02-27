@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { useCart } from '@/hooks/useCart'
 import { formatPrice } from '@/lib/utils'
 
-const FREE_SHIPPING_THRESHOLD = 200
+const FREE_SHIPPING_THRESHOLD = 300
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, getSubtotal } = useCart()

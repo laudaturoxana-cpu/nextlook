@@ -10,8 +10,8 @@ import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-const FREE_SHIPPING_THRESHOLD = 200
-const SHIPPING_COST = 15
+const FREE_SHIPPING_THRESHOLD = 300
+const SHIPPING_COST = 20
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getSubtotal, clearCart } = useCart()
