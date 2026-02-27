@@ -103,7 +103,7 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
         countryId: ROMANIA_COUNTRY_ID,
         siteId,
         addressNote: recipientAddress,
-        postCode: recipientPostCode || '',
+        ...(recipientPostCode ? { postCode: recipientPostCode } : {}),
       },
       phoneNumber: recipientPhone.replace(/\s/g, ''),
     },
