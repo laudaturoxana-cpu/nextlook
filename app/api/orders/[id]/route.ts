@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,11 +8,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = await createClient()
+    const adminSupabase = createAdminClient()
     const { id } = params
 
-    // Fetch order
-    const { data: order, error } = await supabase
+    // Fetch order using admin client to bypass RLS (needed for guest orders)
+    const { data: order, error } = await adminSupabase
       .from('orders')
       .select(`
         *,
