@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ChevronDown, Lock, CreditCard, Truck, MapPin, Shield, Star, User, UserPlus, LogIn } from 'lucide-react'
+import { Lock, Truck, Shield, Star, User, UserPlus, LogIn } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
 import { formatPrice, romanianCounties } from '@/lib/utils'
@@ -48,25 +48,13 @@ const deliveryOptions = [
     description: 'Disponibil pentru comenzi peste 300 lei',
     minOrder: FREE_SHIPPING_THRESHOLD,
   },
-  {
-    id: 'ridicare',
-    name: 'Ridicare personală',
-    price: 0,
-    description: 'Din Brașov, Str. Carpaților nr. 6',
-  },
 ]
 
 const paymentOptions = [
   {
-    id: 'card',
-    name: 'Card online',
-    description: 'Visa, Mastercard - Plată securizată',
-    icon: CreditCard,
-  },
-  {
     id: 'ramburs',
     name: 'Ramburs',
-    description: 'Plata la livrare (+10 lei)',
+    description: 'Plata în numerar la livrare. Se adaugă 10 lei taxă ramburs.',
     icon: Truck,
     extraCost: SHIPPING_COST_RAMBURS,
   },
@@ -75,7 +63,7 @@ const paymentOptions = [
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, getSubtotal, clearCart } = useCart()
-  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [deliveryMethod, setDeliveryMethod] = useState('curier_rapid')
