@@ -146,7 +146,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send email notifications (fire-and-forget, don't fail order if email fails)
     const emailData = {
       orderNumber,
       customerName: fullName,
@@ -166,14 +165,8 @@ export async function POST(request: NextRequest) {
       notes,
     }
 
-    Promise.all([
-      sendOwnerOrderNotification(emailData),
-      sendCustomerOrderConfirmation(emailData),
-    ]).catch(emailError => {
-      console.error('Email notification error (order still created):', emailError)
-    })
-
     // If payment is by card, create Stripe PaymentIntent
+    // Emails will be sent AFTER payment is confirmed (from order-confirmation page)
     if (paymentMethod === 'card') {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(total * 100), // Convert to cents
@@ -196,10 +189,18 @@ export async function POST(request: NextRequest) {
         orderNumber,
         clientSecret: paymentIntent.client_secret,
         awbNumber,
+        emailData, // pass to frontend so it can trigger emails after payment
       })
     }
 
-    // For ramburs or pickup, return success with AWB if generated
+    // For ramburs: send emails immediately
+    Promise.all([
+      sendOwnerOrderNotification(emailData),
+      sendCustomerOrderConfirmation(emailData),
+    ]).catch(emailError => {
+      console.error('Email notification error (order still created):', emailError)
+    })
+
     return NextResponse.json({
       orderId: order.id,
       orderNumber,

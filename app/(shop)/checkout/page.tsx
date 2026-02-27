@@ -148,9 +148,12 @@ export default function CheckoutPage() {
       }
 
       if (paymentMethod === 'card' && result.clientSecret) {
-        // Store clientSecret in sessionStorage and redirect to payment page
+        // Store clientSecret + emailData in sessionStorage and redirect to payment page
         sessionStorage.setItem('stripe_client_secret', result.clientSecret)
         sessionStorage.setItem('pending_order_id', result.orderId)
+        if (result.emailData) {
+          sessionStorage.setItem('order_email_data', JSON.stringify(result.emailData))
+        }
         clearCart()
         router.push(`/checkout/payment/${result.orderId}`)
       } else {

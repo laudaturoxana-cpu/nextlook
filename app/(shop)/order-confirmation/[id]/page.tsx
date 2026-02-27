@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -13,6 +13,7 @@ import { Order } from '@/types'
 
 export default function OrderConfirmationPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { clearCart } = useCart()
@@ -24,7 +25,6 @@ export default function OrderConfirmationPage() {
         const data = await response.json()
         if (data.order) {
           setOrder(data.order)
-          // Clear cart after successful order fetch
           clearCart()
         }
       } catch (error) {
@@ -38,6 +38,26 @@ export default function OrderConfirmationPage() {
       fetchOrder()
     }
   }, [params.id, clearCart])
+
+  // Send emails after successful Stripe card payment redirect
+  useEffect(() => {
+    const redirectStatus = searchParams.get('redirect_status')
+    if (redirectStatus !== 'succeeded') return
+
+    const emailDataStr = sessionStorage.getItem('order_email_data')
+    if (!emailDataStr) return
+
+    try {
+      sessionStorage.removeItem('order_email_data')
+      fetch('/api/orders/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: emailDataStr,
+      }).catch(err => console.error('Failed to send order emails:', err))
+    } catch (e) {
+      console.error('Failed to parse email data:', e)
+    }
+  }, [searchParams])
 
   if (isLoading) {
     return (
