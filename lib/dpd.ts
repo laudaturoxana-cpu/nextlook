@@ -96,9 +96,6 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
 
   const requestBody: Record<string, unknown> = {
     ...credentials,
-    sender: {
-      clientId: process.env.DPD_CLIENT_ID ? Number(process.env.DPD_CLIENT_ID) : undefined,
-    },
     recipient: {
       clientName: recipientName,
       privatePerson: true,
