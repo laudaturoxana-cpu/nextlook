@@ -150,7 +150,9 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   }
 
   const parcelIds: number[] = data.parcels?.map((p: { id: number }) => p.id) || []
-  const awbNumber = data.parcels?.[0]?.seqNo?.toString() || data.id.toString()
+  // parcel.id is the actual DPD tracking/AWB number, not seqNo
+  const awbNumber = data.parcels?.[0]?.id?.toString() || data.id.toString()
+  console.log('DPD shipment created:', JSON.stringify(data.parcels))
 
   return {
     shipmentId: data.id,
