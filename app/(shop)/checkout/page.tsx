@@ -143,7 +143,8 @@ export default function CheckoutPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'A apărut o eroare')
+        console.error('Checkout error details:', result)
+        throw new Error(result.details || result.error || 'A apărut o eroare')
       }
 
       if (paymentMethod === 'card' && result.clientSecret) {
@@ -158,8 +159,9 @@ export default function CheckoutPage() {
         toast.success('Comanda a fost plasată cu succes!')
         router.push(`/order-confirmation/${result.orderId}`)
       }
-    } catch (error) {
-      toast.error('A apărut o eroare. Te rugăm să încerci din nou.')
+    } catch (error: any) {
+      console.error('Checkout catch error:', error)
+      toast.error(error?.message || 'A apărut o eroare. Te rugăm să încerci din nou.')
     } finally {
       setIsLoading(false)
     }
