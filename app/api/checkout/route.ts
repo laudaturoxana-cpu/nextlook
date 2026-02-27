@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         console.log(`DPD AWB generated: ${awbNumber} for order ${orderNumber}`)
       } catch (dpdError: any) {
         // Log DPD error but don't fail the order
-        console.error('DPD shipment error (order still created):', dpdError?.message)
+        console.error('DPD shipment error (order still created):', dpdError?.message, '| Full error:', JSON.stringify(dpdError))
       }
     }
 

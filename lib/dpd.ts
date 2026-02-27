@@ -32,6 +32,7 @@ export async function getDPDSiteId(cityName: string): Promise<number | null> {
     })
 
     const data = await response.json()
+    console.log('DPD site lookup for', normalizedCity, ':', JSON.stringify(data).slice(0, 300))
 
     if (data.sites && data.sites.length > 0) {
       return data.sites[0].id
@@ -140,6 +141,7 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   })
 
   const data = await response.json()
+  console.log('DPD shipment raw response:', JSON.stringify(data))
 
   if (data.error) {
     throw new Error(`DPD error: ${data.error.message || JSON.stringify(data.error)}`)
