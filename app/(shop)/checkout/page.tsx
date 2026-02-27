@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Lock, Truck, Shield, Star, User, UserPlus, LogIn } from 'lucide-react'
+import { Lock, CreditCard, Truck, Shield, Star, User, UserPlus, LogIn } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 import { useAuth } from '@/hooks/useAuth'
 import { formatPrice, romanianCounties } from '@/lib/utils'
@@ -51,6 +51,13 @@ const deliveryOptions = [
 ]
 
 const paymentOptions = [
+  {
+    id: 'card',
+    name: 'Card online',
+    description: 'Visa, Mastercard - Plată securizată prin Stripe',
+    icon: CreditCard,
+    extraCost: 0,
+  },
   {
     id: 'ramburs',
     name: 'Ramburs',
@@ -140,16 +147,17 @@ export default function CheckoutPage() {
       }
 
       if (paymentMethod === 'card' && result.clientSecret) {
-        // Redirect to Stripe payment
-        // În producție, aici ar trebui să folosim Stripe Elements
-        router.push(`/order-confirmation/${result.orderId}`)
+        // Store clientSecret in sessionStorage and redirect to payment page
+        sessionStorage.setItem('stripe_client_secret', result.clientSecret)
+        sessionStorage.setItem('pending_order_id', result.orderId)
+        clearCart()
+        router.push(`/checkout/payment/${result.orderId}`)
       } else {
         // Ramburs - redirect to confirmation
         clearCart()
+        toast.success('Comanda a fost plasată cu succes!')
         router.push(`/order-confirmation/${result.orderId}`)
       }
-
-      toast.success('Comanda a fost plasată cu succes!')
     } catch (error) {
       toast.error('A apărut o eroare. Te rugăm să încerci din nou.')
     } finally {
