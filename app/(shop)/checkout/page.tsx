@@ -45,14 +45,14 @@ const deliveryOptions = [
     id: 'curier_gratuit',
     name: 'Curier gratuit (48-72h)',
     price: 0,
-    description: 'Disponibil pentru comenzi peste 200 lei',
+    description: 'Disponibil pentru comenzi peste 300 lei',
     minOrder: FREE_SHIPPING_THRESHOLD,
   },
   {
     id: 'ridicare',
     name: 'Ridicare personală',
     price: 0,
-    description: 'Din București, zona Unirii',
+    description: 'Din Brașov, Str. Carpaților nr. 6',
   },
 ]
 
@@ -391,7 +391,9 @@ export default function CheckoutPage() {
                           <div className="flex items-center justify-between">
                             <span className="font-medium text-text">{option.name}</span>
                             <span className="font-medium text-gold">
-                              {option.price === 0 ? 'GRATUIT' : formatPrice(option.price)}
+                              {option.id === 'curier_rapid' && subtotal >= FREE_SHIPPING_THRESHOLD
+                                ? 'GRATUIT'
+                                : option.price === 0 ? 'GRATUIT' : formatPrice(option.price)}
                             </span>
                           </div>
                           <p className="text-sm text-text-secondary">{option.description}</p>
