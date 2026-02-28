@@ -10,11 +10,9 @@ export async function GET(request: NextRequest) {
     const minPrice = searchParams.get('minPrice')
     const maxPrice = searchParams.get('maxPrice')
     const brands = searchParams.get('brands')?.split(',')
-    const sizes = searchParams.get('sizes')?.split(',')
     const sortBy = searchParams.get('sort') || 'relevance'
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
-    const isBestseller = searchParams.get('is_bestseller')
     const isFeatured = searchParams.get('is_featured')
     const isNew = searchParams.get('is_new')
 
@@ -22,11 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (category) {
-      query = query.eq('category', category)
-    }
-
-    if (isBestseller === 'true') {
-      query = query.eq('is_bestseller', true)
+      query = query.eq('category_id', category)
     }
 
     if (isFeatured === 'true') {
@@ -59,9 +53,6 @@ export async function GET(request: NextRequest) {
         break
       case 'newest':
         query = query.order('created_at', { ascending: false })
-        break
-      case 'bestseller':
-        query = query.order('is_bestseller', { ascending: false })
         break
       default:
         query = query.order('created_at', { ascending: false })
