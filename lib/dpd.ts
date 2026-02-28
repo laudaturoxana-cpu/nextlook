@@ -138,8 +138,15 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
     body: JSON.stringify(requestBody),
   })
 
-  const data = await response.json()
-  console.log('DPD shipment raw response:', JSON.stringify(data))
+  const responseText = await response.text()
+  console.log('DPD shipment raw response (status', response.status, '):', responseText.slice(0, 500))
+
+  let data: any
+  try {
+    data = JSON.parse(responseText)
+  } catch {
+    throw new Error(`DPD returned non-JSON response (${response.status}): ${responseText.slice(0, 300)}`)
+  }
 
   if (data.error) {
     throw new Error(`DPD error: ${data.error.message || JSON.stringify(data.error)}`)
