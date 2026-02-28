@@ -104,7 +104,7 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
         siteId,
         addressNote: recipientAddress,
       },
-      phone1: recipientPhone.replace(/\s/g, ''),
+      phone1: { number: recipientPhone.replace(/\s/g, '') },
     },
     service: {
       serviceId: 2505, // DPD STANDARD
