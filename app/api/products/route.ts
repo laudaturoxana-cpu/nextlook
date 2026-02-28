@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
     const isFeatured = searchParams.get('is_featured')
     const isNew = searchParams.get('is_new')
 
-    let query = supabase.from('products').select('*', { count: 'exact' })
+    let query = supabase.from('products').select('*, categories!inner(slug)', { count: 'exact' })
 
     // Apply filters
     if (category) {
-      query = query.eq('category_id', category)
+      query = query.eq('categories.slug', category)
     }
 
     if (isFeatured === 'true') {

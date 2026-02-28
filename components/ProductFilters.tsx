@@ -9,10 +9,14 @@ import { cn } from '@/lib/utils'
 
 const categories = [
   { value: '', label: 'Toate' },
-  { value: 'femei', label: 'Femei' },
-  { value: 'barbati', label: 'Bărbați' },
-  { value: 'sneakers', label: 'Sneakers' },
-  { value: 'noutati', label: 'Noutăți' },
+  { value: 'adidasi-barbati', label: 'Adidași Bărbați' },
+  { value: 'adidasi-femei', label: 'Adidași Femei' },
+  { value: 'pantofi-femei', label: 'Pantofi Femei' },
+  { value: 'copii', label: 'Copii' },
+  { value: 'ghete-copii', label: '↳ Ghete Copii' },
+  { value: 'botine-copii', label: '↳ Botine Copii' },
+  { value: 'adidasi-copii', label: '↳ Adidași Copii' },
+  { value: 'accesorii', label: 'Accesorii' },
 ]
 
 // Fallback brands if API fails

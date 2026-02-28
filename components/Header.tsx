@@ -11,10 +11,11 @@ import CartDrawer from '@/components/CartDrawer'
 import toast from 'react-hot-toast'
 
 const navigation = [
-  { name: 'Femei', href: '/shop?category=femei' },
-  { name: 'Bărbați', href: '/shop?category=barbati' },
-  { name: 'Sneakers', href: '/shop?category=sneakers' },
-  { name: 'Noutăți', href: '/shop?category=noutati' },
+  { name: 'Adidași Bărbați', href: '/shop?category=adidasi-barbati' },
+  { name: 'Adidași Femei', href: '/shop?category=adidasi-femei' },
+  { name: 'Pantofi Femei', href: '/shop?category=pantofi-femei' },
+  { name: 'Copii', href: '/shop?category=copii' },
+  { name: 'Accesorii', href: '/shop?category=accesorii' },
   { name: 'Despre', href: '/despre' },
 ]
 

@@ -8,29 +8,29 @@ import { Badge } from '@/components/ui/Badge'
 
 const categories = [
   {
-    name: 'Femei',
-    title: 'Haine & Încălțăminte pentru Ea',
-    href: '/shop?category=femei',
-    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800',
+    name: 'Adidași Bărbați',
+    title: 'Colecție adidași pentru bărbați',
+    href: '/shop?category=adidasi-barbati',
+    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
   },
   {
-    name: 'Bărbați',
-    title: 'Haine & Încălțăminte pentru El',
-    href: '/shop?category=barbati',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800',
+    name: 'Adidași Femei',
+    title: 'Adidași stilați pentru femei',
+    href: '/shop?category=adidasi-femei',
+    image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800',
   },
   {
-    name: 'Sneakers',
-    title: 'Adidași Originali Nike, Adidas, Puma',
-    href: '/shop?category=sneakers',
-    image: 'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800',
-  },
-  {
-    name: 'Noutăți',
-    title: 'Ultimele Sosiri',
-    href: '/shop?category=noutati',
-    image: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800',
+    name: 'Copii',
+    title: 'Ghete, botine și adidași pentru copii',
+    href: '/shop?category=copii',
+    image: 'https://images.unsplash.com/photo-1514590734052-344a18719611?w=800',
     badge: 'NOU',
+  },
+  {
+    name: 'Pantofi & Accesorii',
+    title: 'Pantofi femei și accesorii',
+    href: '/shop?category=pantofi-femei',
+    image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800',
   },
 ]
 
