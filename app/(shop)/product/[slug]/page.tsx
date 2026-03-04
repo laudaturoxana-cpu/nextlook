@@ -470,10 +470,84 @@ export default function ProductPage() {
           {/* Tab Content */}
           <div className="p-6 lg:p-8">
             {activeTab === 'description' && (
-              <div className="prose prose-sm max-w-none">
-                <p className="whitespace-pre-line text-text-secondary leading-relaxed">
-                  {product.description}
-                </p>
+              <div className="space-y-6">
+                {(() => {
+                  const lines = (product.description || '').split('\n')
+                  const intro = lines.filter(l => !l.trim().startsWith('•'))
+                  const bullets = lines.filter(l => l.trim().startsWith('•'))
+                  return (
+                    <>
+                      {/* Intro text */}
+                      <div>
+                        <p className="text-text-secondary leading-relaxed text-base">
+                          {intro.join(' ').trim()}
+                        </p>
+                      </div>
+
+                      {/* Key features */}
+                      {bullets.length > 0 && (
+                        <div>
+                          <h3 className="font-display text-lg text-text mb-4">
+                            Caracteristici principale
+                          </h3>
+                          <ul className="space-y-2">
+                            {bullets.map((b, i) => (
+                              <li key={i} className="flex items-start gap-3 text-text-secondary">
+                                <span className="text-gold font-bold mt-0.5">✓</span>
+                                <span>{b.replace('•', '').trim()}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Product details */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4 border-t border-sand">
+                        <div>
+                          <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Brand</p>
+                          <p className="font-medium text-text">{product.brand || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Culori</p>
+                          <p className="font-medium text-text">
+                            {Array.isArray(product.colors) && product.colors.length > 0
+                              ? (typeof product.colors[0] === 'string'
+                                  ? product.colors.join(', ')
+                                  : product.colors.map((c: any) => c.name).join(', '))
+                              : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Mărimi disponibile</p>
+                          <p className="font-medium text-text">
+                            {Array.isArray(product.sizes) && product.sizes.length > 0
+                              ? `${product.sizes[0]} – ${product.sizes[product.sizes.length - 1]}`
+                              : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Stoc</p>
+                          {(() => {
+                            const stoc = (product as any).stock_quantity ?? product.stock ?? 0
+                            return (
+                              <p className={`font-medium ${stoc > 5 ? 'text-green-600' : stoc > 0 ? 'text-orange-500' : 'text-red-500'}`}>
+                                {stoc > 0 ? `${stoc} perechi disponibile` : 'Stoc epuizat'}
+                              </p>
+                            )
+                          })()}
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Condiție</p>
+                          <p className="font-medium text-text">Produs nou, cu etichetă</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">Garanție</p>
+                          <p className="font-medium text-text">12 luni</p>
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
             )}
 
