@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Package, ShoppingBag, LogOut, LayoutDashboard } from 'lucide-react'
+import { Package, ShoppingBag, LogOut, FolderOpen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 const navItems = [
   { href: '/admin/products', label: 'Produse', icon: Package },
+  { href: '/admin/categories', label: 'Categorii', icon: FolderOpen },
   { href: '/admin/orders', label: 'Comenzi', icon: ShoppingBag, disabled: true },
 ]
 
