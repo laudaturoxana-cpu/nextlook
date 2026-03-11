@@ -9,6 +9,7 @@ import ProductFilters from '@/components/ProductFilters'
 import { Button } from '@/components/ui/Button'
 import { Product } from '@/types'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/components/AnalyticsTracker'
 
 const sortOptions = [
   { value: 'relevance', label: 'Relevante' },
@@ -52,6 +53,10 @@ function ShopContent() {
         if (data.products) {
           setProducts(data.products)
           setTotalProducts(data.total || data.products.length)
+        }
+
+        if (category) {
+          trackEvent({ event_type: 'category_view', category_name: category, page_path: `/shop?category=${category}` })
         }
       } catch (error) {
         console.error('Error fetching products:', error)

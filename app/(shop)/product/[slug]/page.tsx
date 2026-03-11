@@ -25,6 +25,7 @@ import { formatPrice, calculateDiscount } from '@/lib/utils'
 import { Product } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
+import { trackEvent } from '@/components/AnalyticsTracker'
 
 interface Review {
   id: string
@@ -77,6 +78,14 @@ export default function ProductPage() {
         if (data.product.colors && data.product.colors.length > 0) {
           setSelectedColor(data.product.colors[0].name)
         }
+
+        // Track product view
+        trackEvent({
+          event_type: 'product_view',
+          page_path: `/product/${params.slug}`,
+          product_id: data.product.id,
+          product_name: data.product.name,
+        })
       } catch (err) {
         console.error('Error fetching product:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch product')
@@ -102,6 +111,11 @@ export default function ProductPage() {
     }
     addItem(product, selectedSize, selectedColor, quantity)
     toast.success('Produs adăugat în coș!')
+    trackEvent({
+      event_type: 'add_to_cart',
+      product_id: product.id,
+      product_name: product.name,
+    })
   }
 
   const handleBuyNow = () => {
