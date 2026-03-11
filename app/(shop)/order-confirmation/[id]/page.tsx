@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { formatPrice, getOrderStatusText, getDeliveryDate } from '@/lib/utils'
 import { useCart } from '@/hooks/useCart'
 import { Order } from '@/types'
+import { fbPurchase } from '@/lib/fbq'
 
 export default function OrderConfirmationPage() {
   const params = useParams()
@@ -26,6 +27,11 @@ export default function OrderConfirmationPage() {
         if (data.order) {
           setOrder(data.order)
           clearCart()
+          fbPurchase({
+            order_id: data.order.id,
+            value: data.order.total_amount,
+            num_items: data.order.items?.length ?? 1,
+          })
         }
       } catch (error) {
         console.error('Error fetching order:', error)

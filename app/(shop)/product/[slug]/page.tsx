@@ -26,6 +26,7 @@ import { Product } from '@/types'
 import toast from 'react-hot-toast'
 import { cn } from '@/lib/utils'
 import { trackEvent } from '@/components/AnalyticsTracker'
+import { fbViewContent, fbAddToCart } from '@/lib/fbq'
 
 interface Review {
   id: string
@@ -86,6 +87,11 @@ export default function ProductPage() {
           product_id: data.product.id,
           product_name: data.product.name,
         })
+        fbViewContent({
+          product_id: data.product.id,
+          product_name: data.product.name,
+          price: data.product.price,
+        })
       } catch (err) {
         console.error('Error fetching product:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch product')
@@ -115,6 +121,11 @@ export default function ProductPage() {
       event_type: 'add_to_cart',
       product_id: product.id,
       product_name: product.name,
+    })
+    fbAddToCart({
+      product_id: product.id,
+      product_name: product.name,
+      price: product.price,
     })
   }
 
