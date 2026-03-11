@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Bebas_Neue, Montserrat } from 'next/font/google'
+import Script from 'next/script'
 import { Toaster } from 'react-hot-toast'
 import '@/styles/globals.css'
 
@@ -62,6 +63,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ro" className={`${bebasNeue.variable} ${montserrat.variable}`}>
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-P9F6X5P44N"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-P9F6X5P44N');
+          `}
+        </Script>
+      </head>
       <body>
         {children}
         <Toaster
