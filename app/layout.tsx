@@ -19,6 +19,7 @@ const montserrat = Montserrat({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://nextlook.ro'),
   title: {
     default: 'NEXTLOOK - Haine și Încălțăminte de Brand la Prețuri Accesibile',
     template: '%s | NEXTLOOK',
