@@ -64,6 +64,7 @@ export default function RootLayout({
   return (
     <html lang="ro" className={`${bebasNeue.variable} ${montserrat.variable}`}>
       <head>
+        <meta name="facebook-domain-verification" content="g1re6g618is612qryboltig45b90rs" />
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-P9F6X5P44N"
