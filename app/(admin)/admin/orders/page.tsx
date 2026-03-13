@@ -178,7 +178,7 @@ export default function AdminOrdersPage() {
                         AWB: {order.awb_number}
                       </span>
                       <a
-                        href="https://intranet.dpd.ro/"
+                        href="https://myDPD.dpd.ro"
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
