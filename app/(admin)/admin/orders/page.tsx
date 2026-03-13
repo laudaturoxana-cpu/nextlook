@@ -20,6 +20,7 @@ interface Order {
   delivery_method: string
   awb_number: string | null
   dpd_shipment_id: number | null
+  awb_pdf_url: string | null
   order_items: { id: string; product_name: string; quantity: number; price: number; size?: string }[]
 }
 
@@ -145,14 +146,27 @@ export default function AdminOrdersPage() {
                   {order.awb_number ? (
                     <>
                       <span className="text-xs text-gray-500 font-mono">AWB: {order.awb_number}</span>
-                      <button
-                        onClick={e => { e.stopPropagation(); downloadAWB(order.awb_number!, order.order_number) }}
-                        disabled={downloadingAwb === order.awb_number}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                      >
-                        <Download className="h-3 w-3" />
-                        {downloadingAwb === order.awb_number ? 'Se descarcă...' : 'AWB PDF'}
-                      </button>
+                      {order.awb_pdf_url ? (
+                        <a
+                          href={order.awb_pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors"
+                        >
+                          <Download className="h-3 w-3" />
+                          AWB PDF
+                        </a>
+                      ) : (
+                        <button
+                          onClick={e => { e.stopPropagation(); downloadAWB(order.awb_number!, order.order_number) }}
+                          disabled={downloadingAwb === order.awb_number}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        >
+                          <Download className="h-3 w-3" />
+                          {downloadingAwb === order.awb_number ? 'Se descarcă...' : 'AWB PDF'}
+                        </button>
+                      )}
                       <a
                         href={`https://tracking.dpd.ro/?awb=${order.awb_number}`}
                         target="_blank"

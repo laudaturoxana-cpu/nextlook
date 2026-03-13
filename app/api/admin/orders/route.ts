@@ -35,6 +35,7 @@ export async function GET() {
         delivery_method: addr?.delivery_method || 'curier_rapid',
         awb_number: addr?.awb_number || null,
         dpd_shipment_id: addr?.dpd_shipment_id || null,
+        awb_pdf_url: addr?.awb_pdf_url || null,
       }
     })
 

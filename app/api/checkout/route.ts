@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { generateOrderNumber } from '@/lib/utils'
-import { createDPDShipment } from '@/lib/dpd'
+import { createDPDShipment, getDPDLabel } from '@/lib/dpd'
 import { sendOwnerOrderNotification, sendCustomerOrderConfirmation } from '@/lib/emails'
 
 export const dynamic = 'force-dynamic'
@@ -126,6 +126,25 @@ export async function POST(request: NextRequest) {
         awbNumber = dpdResult.awbNumber
         dpdShipmentId = dpdResult.shipmentId
 
+        // Download PDF label immediately (DPD only serves it right after creation)
+        let awbPdfUrl: string | null = null
+        try {
+          const pdfBuffer = await getDPDLabel(dpdResult.parcelIds)
+          if (pdfBuffer && pdfBuffer.length > 0) {
+            const pdfPath = `awb/${orderNumber}-${awbNumber}.pdf`
+            const { error: uploadErr } = await adminSupabase.storage
+              .from('product-images')
+              .upload(pdfPath, new Uint8Array(pdfBuffer), { contentType: 'application/pdf', upsert: true })
+            if (!uploadErr) {
+              const { data: { publicUrl } } = adminSupabase.storage.from('product-images').getPublicUrl(pdfPath)
+              awbPdfUrl = publicUrl
+              console.log(`AWB PDF saved: ${awbPdfUrl}`)
+            }
+          }
+        } catch (pdfErr) {
+          console.error('AWB PDF save error (non-fatal):', pdfErr)
+        }
+
         // Save AWB to order's shipping_address JSONB
         await adminSupabase
           .from('orders')
@@ -134,6 +153,7 @@ export async function POST(request: NextRequest) {
               ...shippingAddress,
               awb_number: awbNumber,
               dpd_shipment_id: dpdShipmentId,
+              awb_pdf_url: awbPdfUrl,
             },
             status: 'confirmed',
           })
