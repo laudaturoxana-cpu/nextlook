@@ -72,7 +72,34 @@ export async function GET(request: NextRequest) {
         }),
       })
       const text = await res.text()
-      return NextResponse.json({ status: res.status, response: text.slice(0, 1000) })
+      let parsed: unknown = null
+      try { parsed = JSON.parse(text) } catch {}
+
+      // Also try printing immediately with the new shipment
+      const shipmentData = parsed as any
+      const newParcelId = shipmentData?.parcels?.[0]?.id
+      const newShipmentId = shipmentData?.id
+      const printResults: Record<string, unknown> = {}
+
+      if (newParcelId) {
+        await new Promise(r => setTimeout(r, 2000))
+        for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
+          const pr = await fetch(`${DPD_API_URL}/print`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify({ ...credentials, parcels: [{ id: newParcelId }], outputType: 'PDF', paperSize }),
+          })
+          const ct = pr.headers.get('content-type') || ''
+          if (ct.includes('application/pdf')) {
+            const buf = Buffer.from(await pr.arrayBuffer())
+            printResults[paperSize] = { bytes: buf.length, hasContent: buf.length > 2000 }
+          } else {
+            printResults[`${paperSize}_err`] = await pr.text().then(t => t.slice(0, 200))
+          }
+        }
+      }
+
+      return NextResponse.json({ status: res.status, fullShipmentResponse: parsed, printResults })
     }
 
     // mode === 'print' - test print for an AWB
