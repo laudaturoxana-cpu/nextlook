@@ -49,7 +49,13 @@ export async function GET(request: NextRequest) {
       const siteData = await siteRes.json()
       const siteId = siteData.sites?.[0]?.id
 
-      const today = new Date().toISOString().split('T')[0]
+      // Next working day for pickup
+      const pickupDate = new Date()
+      pickupDate.setDate(pickupDate.getDate() + 1)
+      if (pickupDate.getDay() === 6) pickupDate.setDate(pickupDate.getDate() + 2)
+      if (pickupDate.getDay() === 0) pickupDate.setDate(pickupDate.getDate() + 1)
+      const pickupDateStr = pickupDate.toISOString().split('T')[0]
+
       const res = await fetch(`${DPD_API_URL}/shipment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -61,7 +67,7 @@ export async function GET(request: NextRequest) {
             address: { countryId: ROMANIA_COUNTRY_ID, siteId, addressNote: 'Str. Test 1' },
             phone1: { number: '0700000000' },
           },
-          service: { serviceId: 2505, pickupDate: today },
+          service: { serviceId: 2505, pickupDate: pickupDateStr },
           content: {
             parcels: [{ seqNo: 1, weight: 1 }],
             totalWeight: 1,
@@ -108,30 +114,43 @@ export async function GET(request: NextRequest) {
     }
 
     const parcelId = parseInt(awb)
+    const shipmentIdParam = request.nextUrl.searchParams.get('shipmentId')
     const results: Record<string, unknown> = {}
 
+    // Test 1: parcels:[{id}] with all paper sizes
     for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
       const res = await fetch(`${DPD_API_URL}/print`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          ...credentials,
-          parcels: [{ id: parcelId }],
-          outputType: 'PDF',
-          paperSize,
-        }),
+        body: JSON.stringify({ ...credentials, parcels: [{ id: parcelId }], outputType: 'PDF', paperSize }),
       })
       const contentType = res.headers.get('content-type') || ''
       if (contentType.includes('application/pdf')) {
         const buf = Buffer.from(await res.arrayBuffer())
-        results[paperSize] = { contentType, bytes: buf.length, isBlank: buf.length < 2000 }
+        results[`parcels_${paperSize}`] = { bytes: buf.length, hasContent: buf.length > 2000 }
       } else {
         const text = await res.text()
-        results[paperSize] = { contentType, status: res.status, body: text.slice(0, 300) }
+        results[`parcels_${paperSize}_err`] = { status: res.status, body: text.slice(0, 200) }
       }
     }
 
-    return NextResponse.json({ awb, results })
+    // Test 2: shipmentId approach (if provided)
+    if (shipmentIdParam) {
+      const res = await fetch(`${DPD_API_URL}/print`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ ...credentials, shipmentId: parseInt(shipmentIdParam), outputType: 'PDF', paperSize: 'A6' }),
+      })
+      const ct = res.headers.get('content-type') || ''
+      if (ct.includes('application/pdf')) {
+        const buf = Buffer.from(await res.arrayBuffer())
+        results['shipmentId_A6'] = { bytes: buf.length, hasContent: buf.length > 2000 }
+      } else {
+        results['shipmentId_A6_err'] = { status: res.status, body: await res.text().then(t => t.slice(0, 300)) }
+      }
+    }
+
+    return NextResponse.json({ awb, shipmentId: shipmentIdParam, results })
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 })
   }
