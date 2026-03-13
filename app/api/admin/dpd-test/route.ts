@@ -123,16 +123,20 @@ export async function GET(request: NextRequest) {
         body: JSON.stringify(body),
       })
       const ct = res.headers.get('content-type') || ''
+      const allHeaders: Record<string, string> = {}
+      res.headers.forEach((v, k) => { allHeaders[k] = v })
       if (ct.includes('application/pdf')) {
         const buf = Buffer.from(await res.arrayBuffer())
         results[label] = {
+          httpStatus: res.status,
           bytes: buf.length,
           hasContent: buf.length > 2000,
-          preview: buf.slice(0, 80).toString('ascii').replace(/[^\x20-\x7E]/g, '.'),
+          headers: allHeaders,
+          preview: buf.slice(0, 120).toString('ascii').replace(/[^\x20-\x7E]/g, '.'),
         }
       } else {
         const text = await res.text()
-        results[label] = { status: res.status, contentType: ct, body: text.slice(0, 300) }
+        results[label] = { httpStatus: res.status, contentType: ct, headers: allHeaders, body: text.slice(0, 500) }
       }
     }
 
