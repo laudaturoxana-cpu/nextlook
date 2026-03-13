@@ -189,10 +189,7 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   }
 }
 
-// Get AWB label as PDF buffer
-export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
-  const credentials = getCredentials()
-
+async function tryDPDPrint(credentials: object, parcelIds: number[], paperSize: string): Promise<Buffer | null> {
   try {
     const response = await fetch(`${DPD_API_URL}/print`, {
       method: 'POST',
@@ -201,36 +198,38 @@ export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
         ...credentials,
         parcels: parcelIds.map(id => ({ id })),
         outputType: 'PDF',
-        paperSize: 'A4_4xA6',
+        paperSize,
       }),
     })
 
     const contentType = response.headers.get('content-type') || ''
 
-    // DPD returns PDF directly as binary
     if (contentType.includes('application/pdf')) {
       const buffer = Buffer.from(await response.arrayBuffer())
-      console.log(`DPD label buffer size: ${buffer.length} bytes | parcelIds: ${parcelIds.join(',')}`)
-      if (buffer.length === 0) return null
-      if (buffer.length < 2000) {
-        console.warn(`DPD label suspiciously small (${buffer.length} bytes) - may be blank PDF`)
-      }
-      return buffer
-    }
-
-    // Fallback: try JSON (base64 or error)
-    const responseText = await response.text()
-    console.log('DPD print non-PDF response (status', response.status, '):', responseText.slice(0, 300))
-    try {
-      const data = JSON.parse(responseText)
-      const b64 = data.pdf || data.base64 || null
-      if (!b64) return null
-      return Buffer.from(b64, 'base64')
-    } catch {
+      console.log(`DPD print [${paperSize}] buffer: ${buffer.length} bytes`)
+      if (buffer.length > 2000) return buffer // real content
+      console.warn(`DPD print [${paperSize}] suspiciously small (${buffer.length} bytes) - blank PDF`)
       return null
     }
-  } catch (error) {
-    console.error('DPD getLabel error:', error)
+
+    const text = await response.text()
+    console.log(`DPD print [${paperSize}] non-PDF (${response.status}):`, text.slice(0, 200))
+    return null
+  } catch (e) {
+    console.error(`DPD print [${paperSize}] error:`, e)
     return null
   }
+}
+
+// Get AWB label as PDF buffer — tries A6, A4, A4_4xA6 in order
+export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
+  const credentials = getCredentials()
+
+  for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
+    const buffer = await tryDPDPrint(credentials, parcelIds, paperSize)
+    if (buffer) return buffer
+  }
+
+  console.error('DPD getDPDLabel: all paper sizes returned blank/empty PDF')
+  return null
 }
