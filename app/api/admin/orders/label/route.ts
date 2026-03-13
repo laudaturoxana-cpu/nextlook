@@ -26,13 +26,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'AWB invalid' }, { status: 400 })
     }
 
-    const pdfBase64 = await getDPDLabel([parcelId])
-    if (!pdfBase64) {
-      return NextResponse.json({ error: 'Nu s-a putut genera eticheta DPD' }, { status: 500 })
+    const pdfBuffer = await getDPDLabel([parcelId])
+    if (!pdfBuffer) {
+      return NextResponse.json({ error: 'Nu s-a putut genera eticheta DPD. AWB-ul poate fi expirat sau invalid.' }, { status: 500 })
     }
 
-    const pdfBuffer = Buffer.from(pdfBase64, 'base64')
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="awb-${awbNumber}.pdf"`,

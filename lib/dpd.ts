@@ -168,8 +168,8 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   }
 }
 
-// Get AWB label as PDF base64
-export async function getDPDLabel(parcelIds: number[]): Promise<string | null> {
+// Get AWB label as PDF buffer
+export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
   const credentials = getCredentials()
 
   try {
@@ -180,12 +180,24 @@ export async function getDPDLabel(parcelIds: number[]): Promise<string | null> {
         ...credentials,
         parcels: parcelIds.map(id => ({ id })),
         outputType: 'PDF',
-        labelFormat: 'A4',
+        paperSize: 'A4',
       }),
     })
 
+    const contentType = response.headers.get('content-type') || ''
+
+    // DPD returns PDF directly as binary
+    if (contentType.includes('application/pdf')) {
+      const buffer = Buffer.from(await response.arrayBuffer())
+      if (buffer.length === 0) return null
+      return buffer
+    }
+
+    // Fallback: try JSON (base64)
     const data = await response.json()
-    return data.pdf || data.base64 || null
+    const b64 = data.pdf || data.base64 || null
+    if (!b64) return null
+    return Buffer.from(b64, 'base64')
   } catch (error) {
     console.error('DPD getLabel error:', error)
     return null
