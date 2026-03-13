@@ -34,26 +34,20 @@ export default function AdminSidebar({ userEmail }: { userEmail: string }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon, disabled }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
             <Link
               key={href}
-              href={disabled ? '#' : href}
+              href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                disabled
-                  ? 'text-gray-600 cursor-not-allowed'
-                  : active
+                active
                   ? 'bg-white/10 text-white'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
               }`}
-              onClick={disabled ? (e) => e.preventDefault() : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
               {label}
-              {disabled && (
-                <span className="ml-auto text-xs text-gray-600">curând</span>
-              )}
             </Link>
           )
         })}
