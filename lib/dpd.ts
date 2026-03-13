@@ -180,7 +180,7 @@ export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
         ...credentials,
         parcels: parcelIds.map(id => ({ id })),
         outputType: 'PDF',
-        paperSize: 'A4',
+        paperSize: 'A4_4xA6',
       }),
     })
 
