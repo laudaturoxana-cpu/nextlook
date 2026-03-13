@@ -9,36 +9,46 @@ function getCredentials() {
   }
 }
 
-// Get DPD site ID for a given city name
-export async function getDPDSiteId(cityName: string): Promise<number | null> {
-  const credentials = getCredentials()
+function normalizeCityName(cityName: string): string {
+  return cityName
+    .replace(/ș/g, 's').replace(/ț/g, 't').replace(/ă/g, 'a')
+    .replace(/â/g, 'a').replace(/î/g, 'i')
+    .replace(/Ș/g, 'S').replace(/Ț/g, 'T').replace(/Ă/g, 'A')
+    .replace(/Â/g, 'A').replace(/Î/g, 'I')
+}
 
-  // Normalize city name for DPD
-  const normalizedCity = cityName
-    .replace('ș', 's').replace('ț', 't').replace('ă', 'a')
-    .replace('â', 'a').replace('î', 'i')
-    .replace('Ș', 'S').replace('Ț', 'T').replace('Ă', 'A')
-    .replace('Â', 'A').replace('Î', 'I')
-
+async function searchDPDSite(credentials: object, name: string): Promise<number | null> {
   try {
     const response = await fetch(`${DPD_API_URL}/location/site`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({
-        ...credentials,
-        countryId: ROMANIA_COUNTRY_ID,
-        name: normalizedCity,
-      }),
+      body: JSON.stringify({ ...credentials, countryId: ROMANIA_COUNTRY_ID, name }),
     })
-
     const data = await response.json()
-    console.log('DPD site lookup for', normalizedCity, ':', JSON.stringify(data).slice(0, 300))
-
-    if (data.sites && data.sites.length > 0) {
-      return data.sites[0].id
-    }
+    console.log('DPD site lookup for', name, ':', JSON.stringify(data).slice(0, 200))
+    if (data.sites && data.sites.length > 0) return data.sites[0].id
   } catch (error) {
-    console.error('DPD getSiteId error:', error)
+    console.error('DPD getSiteId error for', name, ':', error)
+  }
+  return null
+}
+
+// Get DPD site ID for a given city name
+export async function getDPDSiteId(cityName: string): Promise<number | null> {
+  const credentials = getCredentials()
+  const normalized = normalizeCityName(cityName.trim())
+
+  // Try variations: as-is, space→hyphen, hyphen→space, first word only
+  const variations = [
+    normalized,
+    normalized.replace(/\s+/g, '-'),
+    normalized.replace(/-/g, ' '),
+    normalized.split(/[\s-]/)[0],
+  ].filter((v, i, arr) => v && arr.indexOf(v) === i) // deduplicate
+
+  for (const variant of variations) {
+    const siteId = await searchDPDSite(credentials, variant)
+    if (siteId) return siteId
   }
 
   return null
