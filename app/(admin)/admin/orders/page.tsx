@@ -44,15 +44,37 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [downloadingAwb, setDownloadingAwb] = useState<string | null>(null)
+  const [generatingAwb, setGeneratingAwb] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadOrders = () => {
     fetch('/api/admin/orders')
       .then(r => r.json())
       .then(d => setOrders(d.orders || []))
       .catch(() => toast.error('Eroare la încărcarea comenzilor'))
       .finally(() => setIsLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { loadOrders() }, [])
+
+  const regenerateAWB = async (orderId: string) => {
+    setGeneratingAwb(orderId)
+    try {
+      const res = await fetch('/api/admin/orders/regenerate-awb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Eroare')
+      toast.success(`AWB generat: ${data.awbNumber}`)
+      loadOrders()
+    } catch (e: any) {
+      toast.error(e.message || 'Nu s-a putut genera AWB-ul')
+    } finally {
+      setGeneratingAwb(null)
+    }
+  }
 
   const downloadAWB = async (awbNumber: string, orderNumber: string) => {
     setDownloadingAwb(awbNumber)
@@ -179,7 +201,14 @@ export default function AdminOrdersPage() {
                       </a>
                     </>
                   ) : (
-                    <span className="text-xs text-gray-400 italic">Fără AWB</span>
+                    <button
+                      onClick={e => { e.stopPropagation(); regenerateAWB(order.id) }}
+                      disabled={generatingAwb === order.id}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+                    >
+                      <Package className="h-3 w-3" />
+                      {generatingAwb === order.id ? 'Se generează...' : 'Generează AWB'}
+                    </button>
                   )}
                 </div>
               </div>
