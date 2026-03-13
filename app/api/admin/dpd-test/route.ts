@@ -113,44 +113,46 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Parametru ?awb=NUMAR lipsa. Sau adauga ?mode=site&city=Oras sau ?mode=shipment' })
     }
 
-    const parcelId = parseInt(awb)
     const shipmentIdParam = request.nextUrl.searchParams.get('shipmentId')
     const results: Record<string, unknown> = {}
 
-    // Test 1: parcels:[{id}] with all paper sizes
-    for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
+    async function tryPrint(label: string, body: object) {
       const res = await fetch(`${DPD_API_URL}/print`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ ...credentials, parcels: [{ id: parcelId }], outputType: 'PDF', paperSize }),
-      })
-      const contentType = res.headers.get('content-type') || ''
-      if (contentType.includes('application/pdf')) {
-        const buf = Buffer.from(await res.arrayBuffer())
-        results[`parcels_${paperSize}`] = { bytes: buf.length, hasContent: buf.length > 2000 }
-      } else {
-        const text = await res.text()
-        results[`parcels_${paperSize}_err`] = { status: res.status, body: text.slice(0, 200) }
-      }
-    }
-
-    // Test 2: shipmentId approach (if provided)
-    if (shipmentIdParam) {
-      const res = await fetch(`${DPD_API_URL}/print`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({ ...credentials, shipmentId: parseInt(shipmentIdParam), outputType: 'PDF', paperSize: 'A6' }),
+        body: JSON.stringify(body),
       })
       const ct = res.headers.get('content-type') || ''
       if (ct.includes('application/pdf')) {
         const buf = Buffer.from(await res.arrayBuffer())
-        results['shipmentId_A6'] = { bytes: buf.length, hasContent: buf.length > 2000 }
+        results[label] = {
+          bytes: buf.length,
+          hasContent: buf.length > 2000,
+          preview: buf.slice(0, 80).toString('ascii').replace(/[^\x20-\x7E]/g, '.'),
+        }
       } else {
-        results['shipmentId_A6_err'] = { status: res.status, body: await res.text().then(t => t.slice(0, 300)) }
+        const text = await res.text()
+        results[label] = { status: res.status, contentType: ct, body: text.slice(0, 300) }
       }
     }
 
-    return NextResponse.json({ awb, shipmentId: shipmentIdParam, results })
+    // Try parcel ID as string and as number, different request formats
+    const parcelIdStr = awb         // string
+    const parcelIdNum = parseInt(awb) // number
+
+    await tryPrint('str_A6',          { ...credentials, parcels: [{ id: parcelIdStr }], outputType: 'PDF', paperSize: 'A6' })
+    await tryPrint('str_A4_4xA6',     { ...credentials, parcels: [{ id: parcelIdStr }], outputType: 'PDF', paperSize: 'A4_4xA6' })
+    await tryPrint('num_A6',          { ...credentials, parcels: [{ id: parcelIdNum }], outputType: 'PDF', paperSize: 'A6' })
+    await tryPrint('num_A4_4xA6',     { ...credentials, parcels: [{ id: parcelIdNum }], outputType: 'PDF', paperSize: 'A4_4xA6' })
+    await tryPrint('no_outputType',   { ...credentials, parcels: [{ id: parcelIdStr }], paperSize: 'A6' })
+    await tryPrint('labelFormat_PDF', { ...credentials, parcels: [{ id: parcelIdStr }], labelFormat: 'PDF', paperSize: 'A6' })
+
+    if (shipmentIdParam) {
+      await tryPrint('shipmentId_str', { ...credentials, shipmentId: shipmentIdParam, outputType: 'PDF', paperSize: 'A6' })
+      await tryPrint('shipmentId_num', { ...credentials, shipmentId: parseInt(shipmentIdParam), outputType: 'PDF', paperSize: 'A6' })
+    }
+
+    return NextResponse.json({ awb, results })
   } catch (error: any) {
     return NextResponse.json({ error: error?.message }, { status: 500 })
   }
