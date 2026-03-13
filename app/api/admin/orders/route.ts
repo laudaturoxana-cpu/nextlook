@@ -29,10 +29,12 @@ export async function GET() {
         ...order,
         order_number: addr?.order_number || order.id.slice(0, 8).toUpperCase(),
         shipping_name: addr?.full_name || '',
-        shipping_address: addr?.address || '',
+        shipping_address_text: addr?.address || '',
         shipping_city: addr?.city || '',
         shipping_county: addr?.county || '',
         delivery_method: addr?.delivery_method || 'curier_rapid',
+        awb_number: addr?.awb_number || null,
+        dpd_shipment_id: addr?.dpd_shipment_id || null,
       }
     })
 

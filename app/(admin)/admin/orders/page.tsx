@@ -14,7 +14,7 @@ interface Order {
   guest_email: string
   guest_phone: string
   shipping_name: string
-  shipping_address: string
+  shipping_address_text: string
   shipping_city: string
   shipping_county: string
   delivery_method: string
@@ -188,7 +188,7 @@ export default function AdminOrdersPage() {
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-200 text-sm text-gray-500">
                     <span className="font-medium">Adresă livrare: </span>
-                    {order.shipping_address}, {order.shipping_city}, {order.shipping_county}
+                    {order.shipping_address_text}, {order.shipping_city}, {order.shipping_county}
                   </div>
                 </div>
               )}
