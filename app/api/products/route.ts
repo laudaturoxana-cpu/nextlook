@@ -20,7 +20,24 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (category) {
-      query = query.eq('categories.slug', category)
+      // Find the category + all its children (subcategories)
+      const { data: catRow } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('slug', category)
+        .single()
+
+      if (catRow) {
+        const { data: children } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('parent_id', catRow.id)
+
+        const ids = [catRow.id, ...(children || []).map((c: { id: string }) => c.id)]
+        query = query.in('category_id', ids)
+      } else {
+        query = query.eq('categories.slug', category)
+      }
     }
 
     if (isFeatured === 'true') {
