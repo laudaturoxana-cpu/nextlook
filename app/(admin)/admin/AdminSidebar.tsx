@@ -10,7 +10,7 @@ const navItems = [
   { href: '/admin/products', label: 'Produse', icon: Package },
   { href: '/admin/categories', label: 'Categorii', icon: FolderOpen },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
-  { href: '/admin/orders', label: 'Comenzi', icon: ShoppingBag, disabled: true },
+  { href: '/admin/orders', label: 'Comenzi', icon: ShoppingBag },
 ]
 
 export default function AdminSidebar({ userEmail }: { userEmail: string }) {
