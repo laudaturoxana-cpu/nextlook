@@ -11,10 +11,15 @@ function getCredentials() {
 
 function normalizeCityName(cityName: string): string {
   return cityName
-    .replace(/ș/g, 's').replace(/ț/g, 't').replace(/ă/g, 'a')
-    .replace(/â/g, 'a').replace(/î/g, 'i')
-    .replace(/Ș/g, 'S').replace(/Ț/g, 'T').replace(/Ă/g, 'A')
-    .replace(/Â/g, 'A').replace(/Î/g, 'I')
+    // comma-below variants (new standard)
+    .replace(/ș/g, 's').replace(/ț/g, 't')
+    .replace(/Ș/g, 'S').replace(/Ț/g, 'T')
+    // cedilla variants (old standard)
+    .replace(/ş/g, 's').replace(/ţ/g, 't')
+    .replace(/Ş/g, 'S').replace(/Ţ/g, 'T')
+    // rest
+    .replace(/ă/g, 'a').replace(/â/g, 'a').replace(/î/g, 'i')
+    .replace(/Ă/g, 'A').replace(/Â/g, 'A').replace(/Î/g, 'I')
 }
 
 async function searchDPDSite(credentials: object, name: string): Promise<number | null> {
