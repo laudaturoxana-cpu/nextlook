@@ -43,7 +43,6 @@ const statusLabels: Record<string, string> = {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [downloadingAwb, setDownloadingAwb] = useState<string | null>(null)
   const [generatingAwb, setGeneratingAwb] = useState<string | null>(null)
   const [confirmingOrder, setConfirmingOrder] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -95,28 +94,6 @@ export default function AdminOrdersPage() {
     }
   }
 
-  const downloadAWB = async (awbNumber: string, orderNumber: string) => {
-    setDownloadingAwb(awbNumber)
-    try {
-      const res = await fetch(`/api/admin/orders/label?awb=${awbNumber}`)
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Eroare')
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `awb-${orderNumber}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('AWB descărcat!')
-    } catch (e: any) {
-      toast.error(e.message || 'Nu s-a putut descărca AWB-ul')
-    } finally {
-      setDownloadingAwb(null)
-    }
-  }
 
   if (isLoading) {
     return (
@@ -197,28 +174,19 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center gap-2">
                   {order.awb_number ? (
                     <>
-                      <span className="text-xs text-gray-500 font-mono">AWB: {order.awb_number}</span>
-                      {order.awb_pdf_url ? (
-                        <a
-                          href={order.awb_pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={e => e.stopPropagation()}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors"
-                        >
-                          <Download className="h-3 w-3" />
-                          AWB PDF
-                        </a>
-                      ) : (
-                        <button
-                          onClick={e => { e.stopPropagation(); downloadAWB(order.awb_number!, order.order_number) }}
-                          disabled={downloadingAwb === order.awb_number}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        >
-                          <Download className="h-3 w-3" />
-                          {downloadingAwb === order.awb_number ? 'Se descarcă...' : 'AWB PDF'}
-                        </button>
-                      )}
+                      <span className="text-xs font-bold text-gray-900 font-mono bg-yellow-50 border border-yellow-300 px-2 py-1 rounded">
+                        AWB: {order.awb_number}
+                      </span>
+                      <a
+                        href="https://intranet.dpd.ro/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        <Download className="h-3 w-3" />
+                        Print etichetă DPD
+                      </a>
                       <a
                         href={`https://tracking.dpd.ro/?awb=${order.awb_number}`}
                         target="_blank"
@@ -227,7 +195,7 @@ export default function AdminOrdersPage() {
                         className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3" />
-                        Tracking DPD
+                        Tracking
                       </a>
                     </>
                   ) : (
