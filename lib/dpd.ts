@@ -177,7 +177,10 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   const parcelIds: number[] = data.parcels?.map((p: { id: number }) => p.id) || []
   // parcel.id is the actual DPD tracking/AWB number, not seqNo
   const awbNumber = data.parcels?.[0]?.id?.toString() || data.id.toString()
-  console.log('DPD shipment created:', JSON.stringify(data.parcels))
+  console.log('DPD shipment created - full parcels:', JSON.stringify(data.parcels), '| shipmentId:', data.id)
+
+  // Wait 3s for DPD to finish processing before label is available
+  await new Promise(resolve => setTimeout(resolve, 3000))
 
   return {
     shipmentId: data.id,
@@ -207,15 +210,25 @@ export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
     // DPD returns PDF directly as binary
     if (contentType.includes('application/pdf')) {
       const buffer = Buffer.from(await response.arrayBuffer())
+      console.log(`DPD label buffer size: ${buffer.length} bytes | parcelIds: ${parcelIds.join(',')}`)
       if (buffer.length === 0) return null
+      if (buffer.length < 2000) {
+        console.warn(`DPD label suspiciously small (${buffer.length} bytes) - may be blank PDF`)
+      }
       return buffer
     }
 
-    // Fallback: try JSON (base64)
-    const data = await response.json()
-    const b64 = data.pdf || data.base64 || null
-    if (!b64) return null
-    return Buffer.from(b64, 'base64')
+    // Fallback: try JSON (base64 or error)
+    const responseText = await response.text()
+    console.log('DPD print non-PDF response (status', response.status, '):', responseText.slice(0, 300))
+    try {
+      const data = JSON.parse(responseText)
+      const b64 = data.pdf || data.base64 || null
+      if (!b64) return null
+      return Buffer.from(b64, 'base64')
+    } catch {
+      return null
+    }
   } catch (error) {
     console.error('DPD getLabel error:', error)
     return null
