@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { createDPDShipment, getDPDLabel } from '@/lib/dpd'
 
+export const dynamic = 'force-dynamic'
+
 function isAdmin(email: string | undefined) {
   if (!email) return false
   const admins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim())
