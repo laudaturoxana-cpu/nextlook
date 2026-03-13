@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     const shipmentIdParam = request.nextUrl.searchParams.get('shipmentId')
     const results: Record<string, unknown> = {}
 
-    async function tryPrint(label: string, body: object) {
+    const tryPrint = async (label: string, body: object) => {
       const res = await fetch(`${DPD_API_URL}/print`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
