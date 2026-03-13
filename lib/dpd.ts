@@ -11,15 +11,18 @@ function getCredentials() {
 
 function normalizeCityName(cityName: string): string {
   return cityName
-    // comma-below variants (new standard)
-    .replace(/ș/g, 's').replace(/ț/g, 't')
-    .replace(/Ș/g, 'S').replace(/Ț/g, 'T')
-    // cedilla variants (old standard)
-    .replace(/ş/g, 's').replace(/ţ/g, 't')
-    .replace(/Ş/g, 'S').replace(/Ţ/g, 'T')
-    // rest
+    .trim()
+    // Romanian diacritics — comma-below (new standard)
+    .replace(/ș/g, 's').replace(/ț/g, 't').replace(/Ș/g, 'S').replace(/Ț/g, 'T')
+    // Romanian diacritics — cedilla (old standard)
+    .replace(/ş/g, 's').replace(/ţ/g, 't').replace(/Ş/g, 'S').replace(/Ţ/g, 'T')
+    // ă â î and uppercase
     .replace(/ă/g, 'a').replace(/â/g, 'a').replace(/î/g, 'i')
     .replace(/Ă/g, 'A').replace(/Â/g, 'A').replace(/Î/g, 'I')
+    // Other accented Latin letters (in case of keyboard/paste issues)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    // Collapse multiple spaces
+    .replace(/\s+/g, ' ')
 }
 
 async function searchDPDSite(credentials: object, name: string): Promise<number | null> {

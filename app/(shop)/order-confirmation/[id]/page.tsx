@@ -45,14 +45,23 @@ export default function OrderConfirmationPage() {
     }
   }, [params.id, clearCart])
 
-  // Send emails after successful Stripe card payment redirect
+  // After successful Stripe card payment: confirm order + send emails
   useEffect(() => {
     const redirectStatus = searchParams.get('redirect_status')
     if (redirectStatus !== 'succeeded') return
 
+    const orderId = params.id as string
+
+    // Confirm payment status (fallback in case webhook didn't fire)
+    fetch('/api/orders/confirm-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    }).catch(err => console.error('Failed to confirm payment:', err))
+
+    // Send emails
     const emailDataStr = sessionStorage.getItem('order_email_data')
     if (!emailDataStr) return
-
     try {
       sessionStorage.removeItem('order_email_data')
       fetch('/api/orders/notify', {
@@ -63,7 +72,7 @@ export default function OrderConfirmationPage() {
     } catch (e) {
       console.error('Failed to parse email data:', e)
     }
-  }, [searchParams])
+  }, [searchParams, params.id])
 
   if (isLoading) {
     return (
