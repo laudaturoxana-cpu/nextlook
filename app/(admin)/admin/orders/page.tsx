@@ -45,6 +45,7 @@ export default function AdminOrdersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [downloadingAwb, setDownloadingAwb] = useState<string | null>(null)
   const [generatingAwb, setGeneratingAwb] = useState<string | null>(null)
+  const [confirmingOrder, setConfirmingOrder] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
   const loadOrders = () => {
@@ -56,6 +57,24 @@ export default function AdminOrdersPage() {
   }
 
   useEffect(() => { loadOrders() }, [])
+
+  const confirmOrder = async (orderId: string) => {
+    setConfirmingOrder(orderId)
+    try {
+      const res = await fetch('/api/admin/orders/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+      if (!res.ok) throw new Error('Eroare')
+      toast.success('Comanda confirmată!')
+      loadOrders()
+    } catch (e: any) {
+      toast.error(e.message || 'Eroare la confirmare')
+    } finally {
+      setConfirmingOrder(null)
+    }
+  }
 
   const regenerateAWB = async (orderId: string) => {
     setGeneratingAwb(orderId)
@@ -159,9 +178,20 @@ export default function AdminOrdersPage() {
                 </div>
 
                 {/* Status */}
-                <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {statusLabels[order.status] || order.status}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[order.status] || 'bg-gray-100 text-gray-600'}`}>
+                    {statusLabels[order.status] || order.status}
+                  </span>
+                  {order.status === 'pending' && (
+                    <button
+                      onClick={e => { e.stopPropagation(); confirmOrder(order.id) }}
+                      disabled={confirmingOrder === order.id}
+                      className="px-2 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {confirmingOrder === order.id ? '...' : 'Confirmă'}
+                    </button>
+                  )}
+                </div>
 
                 {/* AWB */}
                 <div className="flex items-center gap-2">
