@@ -124,6 +124,7 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
     ...credentials,
     sender: senderSiteId ? {
       clientName: process.env.DPD_SENDER_NAME || 'NEXTLOOK',
+      privatePerson: false,
       address: {
         countryId: ROMANIA_COUNTRY_ID,
         siteId: senderSiteId,
