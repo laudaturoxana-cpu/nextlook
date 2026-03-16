@@ -214,12 +214,14 @@ export async function POST(request: NextRequest) {
     }
 
     // For ramburs: send emails immediately
-    Promise.all([
-      sendOwnerOrderNotification(emailData),
-      sendCustomerOrderConfirmation(emailData),
-    ]).catch(emailError => {
+    try {
+      await Promise.all([
+        sendOwnerOrderNotification(emailData),
+        sendCustomerOrderConfirmation(emailData),
+      ])
+    } catch (emailError) {
       console.error('Email notification error (order still created):', emailError)
-    })
+    }
 
     return NextResponse.json({
       orderId: order.id,
