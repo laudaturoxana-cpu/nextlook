@@ -29,8 +29,88 @@ export async function GET(request: NextRequest) {
       clientSystemId: process.env.DPD_CLIENT_ID ? Number(process.env.DPD_CLIENT_ID) : undefined,
     }
 
+    // ── mode=full: end-to-end test using real createDPDShipment ──────────────
+    if (mode === 'full') {
+      const { createDPDShipment } = await import('@/lib/dpd')
+      const debug: Record<string, unknown> = {
+        credentials: {
+          userName: credentials.userName,
+          hasPassword: !!credentials.password,
+          clientSystemId: credentials.clientSystemId,
+        },
+        envSender: {
+          DPD_SENDER_NAME: process.env.DPD_SENDER_NAME,
+          DPD_SENDER_CITY: process.env.DPD_SENDER_CITY,
+          DPD_SENDER_ADDRESS: process.env.DPD_SENDER_ADDRESS,
+          DPD_SENDER_PHONE: process.env.DPD_SENDER_PHONE,
+        },
+      }
+
+      let shipmentResult: any = null
+      try {
+        shipmentResult = await createDPDShipment({
+          recipientName: 'Test Client',
+          recipientPhone: '0700000000',
+          recipientCity: 'Bucuresti',
+          recipientAddress: 'Str. Test 1',
+          total: 100,
+          paymentMethod: 'ramburs',
+          orderNumber: `TEST-${Date.now()}`,
+          parcelsCount: 1,
+        })
+        debug.shipmentResult = shipmentResult
+      } catch (err: any) {
+        debug.shipmentError = err?.message
+        return NextResponse.json({ debug })
+      }
+
+      // Test print for newly created shipment
+      const printDebug: Record<string, unknown> = {}
+      if (shipmentResult?.parcelIds?.length > 0) {
+        await new Promise(r => setTimeout(r, 3000))
+        for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
+          for (const idType of ['number', 'string']) {
+            const parcelId = idType === 'number'
+              ? shipmentResult.parcelIds[0]
+              : String(shipmentResult.parcelIds[0])
+            const printPayload = {
+              ...credentials,
+              parcels: [{ id: parcelId }],
+              outputType: 'PDF',
+              paperSize,
+            }
+            const pr = await fetch(`${DPD_API_URL}/print`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json; charset=utf-8' },
+              body: JSON.stringify(printPayload),
+            })
+            const ct = pr.headers.get('content-type') || ''
+            const allHeaders: Record<string, string> = {}
+            pr.headers.forEach((v, k) => { allHeaders[k] = v })
+            const key = `${paperSize}_id_${idType}`
+            if (ct.includes('application/pdf')) {
+              const buf = Buffer.from(await pr.arrayBuffer())
+              printDebug[key] = {
+                httpStatus: pr.status,
+                bytes: buf.length,
+                hasContent: buf.length > 2000,
+                contentType: ct,
+                preview: buf.slice(0, 80).toString('ascii').replace(/[^\x20-\x7E]/g, '.'),
+              }
+            } else {
+              const body = await pr.text()
+              printDebug[key] = { httpStatus: pr.status, contentType: ct, body: body.slice(0, 300), headers: allHeaders }
+            }
+          }
+        }
+      }
+      debug.printDebug = printDebug
+
+      return NextResponse.json({ debug })
+    }
+
+    // ── mode=site ────────────────────────────────────────────────────────────
     if (mode === 'site') {
-      // Test city lookup
       const city = request.nextUrl.searchParams.get('city') || 'Bucuresti'
       const res = await fetch(`${DPD_API_URL}/location/site`, {
         method: 'POST',
@@ -41,8 +121,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ city, status: res.status, data })
     }
 
+    // ── mode=shipment (legacy inline test) ───────────────────────────────────
     if (mode === 'shipment') {
-      // Test create shipment
       const siteRes = await fetch(`${DPD_API_URL}/location/site`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -51,42 +131,41 @@ export async function GET(request: NextRequest) {
       const siteData = await siteRes.json()
       const siteId = siteData.sites?.[0]?.id
 
-      // Next working day for pickup
       const pickupDate = new Date()
       pickupDate.setDate(pickupDate.getDate() + 1)
       if (pickupDate.getDay() === 6) pickupDate.setDate(pickupDate.getDate() + 2)
       if (pickupDate.getDay() === 0) pickupDate.setDate(pickupDate.getDate() + 1)
       const pickupDateStr = pickupDate.toISOString().split('T')[0]
 
+      const shipmentPayload = {
+        ...credentials,
+        recipient: {
+          clientName: 'Test Client',
+          privatePerson: true,
+          address: { countryId: ROMANIA_COUNTRY_ID, siteId, addressNote: 'Str. Test 1' },
+          phone1: { number: '0700000000' },
+        },
+        service: { serviceId: 2505, pickupDate: pickupDateStr },
+        content: {
+          parcels: [{ seqNo: 1, weight: 1 }],
+          totalWeight: 1,
+          contents: 'TEST',
+          package: 'BOX',
+        },
+        payment: { courierServicePayer: 'SENDER' },
+      }
+
       const res = await fetch(`${DPD_API_URL}/shipment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify({
-          ...credentials,
-          recipient: {
-            clientName: 'Test Client',
-            privatePerson: true,
-            address: { countryId: ROMANIA_COUNTRY_ID, siteId, addressNote: 'Str. Test 1' },
-            phone1: { number: '0700000000' },
-          },
-          service: { serviceId: 2505, pickupDate: pickupDateStr },
-          content: {
-            parcels: [{ seqNo: 1, weight: 1 }],
-            totalWeight: 1,
-            contents: 'TEST',
-            package: 'BOX',
-          },
-          payment: { courierServicePayer: 'SENDER' },
-        }),
+        body: JSON.stringify(shipmentPayload),
       })
       const text = await res.text()
       let parsed: unknown = null
       try { parsed = JSON.parse(text) } catch {}
 
-      // Also try printing immediately with the new shipment
       const shipmentData = parsed as any
       const newParcelId = shipmentData?.parcels?.[0]?.id
-      const newShipmentId = shipmentData?.id
       const printResults: Record<string, unknown> = {}
 
       if (newParcelId) {
@@ -110,9 +189,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ status: res.status, fullShipmentResponse: parsed, printResults })
     }
 
-    // mode === 'print' - test print for an AWB
+    // ── mode=print ───────────────────────────────────────────────────────────
     if (!awb) {
-      return NextResponse.json({ error: 'Parametru ?awb=NUMAR lipsa. Sau adauga ?mode=site&city=Oras sau ?mode=shipment' })
+      return NextResponse.json({ error: 'Parametru ?awb=NUMAR lipsa. Sau adauga ?mode=site&city=Oras sau ?mode=shipment sau ?mode=full' })
     }
 
     const shipmentIdParam = request.nextUrl.searchParams.get('shipmentId')
@@ -142,9 +221,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Try parcel ID as string and as number, different request formats
-    const parcelIdStr = awb         // string
-    const parcelIdNum = parseInt(awb) // number
+    const parcelIdStr = awb
+    const parcelIdNum = parseInt(awb)
 
     await tryPrint('str_A6',          { ...credentials, parcels: [{ id: parcelIdStr }], outputType: 'PDF', paperSize: 'A6' })
     await tryPrint('str_A4_4xA6',     { ...credentials, parcels: [{ id: parcelIdStr }], outputType: 'PDF', paperSize: 'A4_4xA6' })
