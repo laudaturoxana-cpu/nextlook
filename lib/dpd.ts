@@ -112,8 +112,25 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
 
   const pickupDateStr = pickupDate.toISOString().split('T')[0]
 
+  // Get sender site ID
+  const senderCity = process.env.DPD_SENDER_CITY || 'Moieciu de Sus'
+  let senderSiteId = await getDPDSiteId(senderCity)
+  if (!senderSiteId) {
+    // Fallback to Brasov if Moieciu de Sus not found
+    senderSiteId = await getDPDSiteId('Brasov')
+  }
+
   const requestBody: Record<string, unknown> = {
     ...credentials,
+    sender: senderSiteId ? {
+      clientName: process.env.DPD_SENDER_NAME || 'NEXTLOOK',
+      address: {
+        countryId: ROMANIA_COUNTRY_ID,
+        siteId: senderSiteId,
+        addressNote: process.env.DPD_SENDER_ADDRESS || 'Str. Principala 20',
+      },
+      phone1: { number: (process.env.DPD_SENDER_PHONE || '0749976984').replace(/\s/g, '') },
+    } : undefined,
     recipient: {
       clientName: recipientName,
       privatePerson: true,
