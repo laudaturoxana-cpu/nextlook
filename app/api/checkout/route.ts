@@ -39,6 +39,54 @@ export async function POST(request: NextRequest) {
     // Get current user (optional - allows guest checkout)
     const { data: { user } } = await supabase.auth.getUser()
 
+    // Validate prices server-side — never trust client-sent prices
+    const isValidUUIDCheck = (id: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+    const validProductIds = items
+      .map((i: any) => i.product_id)
+      .filter((id: string) => isValidUUIDCheck(id))
+
+    let serverSubtotal = 0
+    if (validProductIds.length > 0) {
+      const { data: dbProducts } = await adminSupabase
+        .from('products')
+        .select('id, price')
+        .in('id', validProductIds)
+
+      if (dbProducts && dbProducts.length > 0) {
+        const priceMap: Record<string, number> = {}
+        for (const p of dbProducts) priceMap[p.id] = p.price
+
+        for (const item of items) {
+          const dbPrice = priceMap[item.product_id]
+          if (dbPrice !== undefined) {
+            serverSubtotal += dbPrice * (item.quantity || 1)
+          } else {
+            serverSubtotal += item.price * (item.quantity || 1)
+          }
+        }
+      } else {
+        serverSubtotal = subtotal
+      }
+    } else {
+      serverSubtotal = subtotal
+    }
+
+    const FREE_SHIPPING_THRESHOLD = 300
+    const SHIPPING_COST_RAPID = 20
+    const SHIPPING_COST_RAMBURS = 10
+
+    let serverShipping = 0
+    if (deliveryMethod === 'curier_rapid') {
+      serverShipping = serverSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST_RAPID
+    } else if (deliveryMethod === 'curier_gratuit') {
+      serverShipping = 0
+    }
+    if (paymentMethod === 'ramburs') serverShipping += SHIPPING_COST_RAMBURS
+
+    const serverTotal = Math.round((serverSubtotal + serverShipping) * 100) / 100
+
     // Generate order number for reference
     const orderNumber = generateOrderNumber()
 
@@ -61,9 +109,9 @@ export async function POST(request: NextRequest) {
         guest_email: email,
         guest_phone: phone,
         status: 'pending',
-        subtotal,
-        shipping_cost: shippingCost,
-        total,
+        subtotal: serverSubtotal,
+        shipping_cost: serverShipping,
+        total: serverTotal,
         shipping_address: shippingAddress,
         payment_method: paymentMethod,
         payment_status: 'pending',
@@ -117,7 +165,7 @@ export async function POST(request: NextRequest) {
           recipientCity: city,
           recipientAddress: address,
           recipientPostCode: postalCode,
-          total,
+          total: serverTotal,
           paymentMethod,
           orderNumber,
           parcelsCount: items.length || 1,
@@ -178,9 +226,9 @@ export async function POST(request: NextRequest) {
       deliveryMethod,
       paymentMethod,
       items,
-      subtotal,
-      shippingCost,
-      total,
+      subtotal: serverSubtotal,
+      shippingCost: serverShipping,
+      total: serverTotal,
       awbNumber,
       notes,
     }
@@ -189,7 +237,7 @@ export async function POST(request: NextRequest) {
     // Emails will be sent AFTER payment is confirmed (from order-confirmation page)
     if (paymentMethod === 'card') {
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(total * 100), // Convert to cents
+        amount: Math.round(serverTotal * 100), // Convert to cents — server-calculated price
         currency: 'ron',
         metadata: {
           orderId: order.id,

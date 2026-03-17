@@ -16,6 +16,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate lengths
+    if (name.length > 100 || subject.length > 200 || message.length > 5000) {
+      return NextResponse.json(
+        { error: 'Datele introduse depășesc lungimea permisă.' },
+        { status: 400 }
+      )
+    }
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {

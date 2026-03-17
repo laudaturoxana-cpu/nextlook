@@ -99,15 +99,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function isAdmin(email: string | undefined) {
+  if (!email) return false
+  const admins = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim())
+  return admins.includes(email)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const body = await request.json()
 
-    // Check if user is admin (you would implement proper admin check)
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (!user || !isAdmin(user.email)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
