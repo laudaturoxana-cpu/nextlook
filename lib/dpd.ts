@@ -105,70 +105,83 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   // NEXTLOOK SRL clientId — Moieciu de Sus, str. Principala 20
   const NEXTLOOK_CLIENT_ID = 50929196303
 
-  // Pickup date: always tomorrow (next business day) — server runs UTC, avoid same-day cutoff issues
-  const pickupDate = new Date()
-  pickupDate.setDate(pickupDate.getDate() + 1)
-  // Skip weekends
-  if (pickupDate.getDay() === 6) pickupDate.setDate(pickupDate.getDate() + 2)
-  if (pickupDate.getDay() === 0) pickupDate.setDate(pickupDate.getDate() + 1)
-
-  const pickupDateStr = pickupDate.toISOString().split('T')[0]
-
-  const requestBody: Record<string, unknown> = {
-    ...credentials,
-    sender: {
-      clientId: NEXTLOOK_CLIENT_ID,
-    },
-    recipient: {
-      clientName: recipientName,
-      privatePerson: true,
-      address: {
-        countryId: ROMANIA_COUNTRY_ID,
-        siteId,
-        addressNote: recipientAddress,
-      },
-      phone1: { number: recipientPhone.replace(/\s/g, '') },
-    },
-    service: {
-      serviceId: 2505, // DPD STANDARD
-      pickupDate: pickupDateStr,
-    },
-    content: {
-      parcels: Array.from({ length: parcelsCount }, (_, i) => ({ seqNo: i + 1, weight: 1 })),
-      totalWeight: parcelsCount,
-      contents: `Comanda ${orderNumber} - produse vestimentare`,
-      package: 'BOX',
-    },
-    payment: {
-      courierServicePayer: 'SENDER',
-    },
+  // Helper: get next business day starting from daysAhead offset
+  function getPickupDate(daysAhead: number): string {
+    const d = new Date()
+    d.setDate(d.getDate() + daysAhead)
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2)
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1)
+    return d.toISOString().split('T')[0]
   }
 
-  // Add COD for ramburs payment
-  if (paymentMethod === 'ramburs') {
-    requestBody.additionalServices = {
-      cod: {
-        amount: total,
-        currencyCode: 'RON',
-        processingType: 'CASH',
+  function buildBody(pickupDateStr: string): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      ...credentials,
+      sender: { clientId: NEXTLOOK_CLIENT_ID },
+      recipient: {
+        clientName: recipientName,
+        privatePerson: true,
+        address: {
+          countryId: ROMANIA_COUNTRY_ID,
+          siteId,
+          addressNote: recipientAddress,
+        },
+        phone1: { number: recipientPhone.replace(/\s/g, '') },
       },
+      service: {
+        serviceId: 2505, // DPD STANDARD
+        pickupDate: pickupDateStr,
+      },
+      content: {
+        parcels: Array.from({ length: parcelsCount }, (_, i) => ({ seqNo: i + 1, weight: 1 })),
+        totalWeight: parcelsCount,
+        contents: `Comanda ${orderNumber} - produse vestimentare`,
+        package: 'BOX',
+      },
+      payment: { courierServicePayer: 'SENDER' },
     }
+    if (paymentMethod === 'ramburs') {
+      body.additionalServices = {
+        cod: { amount: total, currencyCode: 'RON', processingType: 'CASH' },
+      }
+    }
+    return body
   }
 
-  const response = await fetch(`${DPD_API_URL}/shipment`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(requestBody),
-  })
+  // Try pickup dates: tomorrow +1..+7 days — Moieciu de Sus is served only on certain weekdays
+  let responseText = ''
+  let lastPickupDate = ''
+  for (let daysAhead = 1; daysAhead <= 7; daysAhead++) {
+    lastPickupDate = getPickupDate(daysAhead)
+    const res = await fetch(`${DPD_API_URL}/shipment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(buildBody(lastPickupDate)),
+    })
+    responseText = await res.text()
+    console.log(`DPD shipment attempt [${lastPickupDate}] status ${res.status}:`, responseText.slice(0, 300))
 
-  const responseText = await response.text()
-  console.log('DPD shipment raw response (status', response.status, '):', responseText.slice(0, 500))
+    // If error is about pickup day not served, try next day
+    let parsed: any
+    try { parsed = JSON.parse(responseText) } catch { break }
+    if (parsed?.error?.message && (
+      parsed.error.message.includes('nu este deservita') ||
+      parsed.error.message.includes('afara orelor de program') ||
+      parsed.error.message.includes('data de preluare') ||
+      parsed.error.message.includes('zi de preluare')
+    )) {
+      console.log(`DPD pickup not available on ${lastPickupDate}, trying next day...`)
+      continue
+    }
+    break // success or different error — stop retrying
+  }
+  console.log('DPD shipment raw response:', responseText.slice(0, 500))
 
   let data: any
   try {
     data = JSON.parse(responseText)
   } catch {
-    throw new Error(`DPD returned non-JSON response (${response.status}): ${responseText.slice(0, 300)}`)
+    throw new Error(`DPD returned non-JSON response: ${responseText.slice(0, 300)}`)
   }
 
   if (data.error) {
