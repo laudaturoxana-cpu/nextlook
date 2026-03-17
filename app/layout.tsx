@@ -51,9 +51,16 @@ export const metadata: Metadata = {
     title: 'NEXTLOOK - Următorul Tău Stil',
     description: 'Arată bine. Fără stres, fără riscuri.',
   },
+  alternates: {
+    canonical: 'https://nextlook.ro',
+  },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
   },
 }
 

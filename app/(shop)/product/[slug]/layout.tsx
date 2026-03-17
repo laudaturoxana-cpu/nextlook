@@ -28,6 +28,9 @@ export async function generateMetadata({
     return {
       title,
       description,
+      alternates: {
+        canonical: `https://nextlook.ro/product/${params.slug}`,
+      },
       openGraph: {
         title,
         description,
@@ -48,6 +51,56 @@ export async function generateMetadata({
   }
 }
 
-export default function ProductLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+export default async function ProductLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: { slug: string }
+}) {
+  let jsonLd = null
+  try {
+    const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?slug=eq.${params.slug}&select=name,description,images,price,original_price,brand,stock_quantity&limit=1`
+    const res = await fetch(url, {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+      },
+      next: { revalidate: 3600 },
+    })
+    const rows = await res.json()
+    const product = rows?.[0]
+    if (product) {
+      const image = Array.isArray(product.images) ? product.images[0] : null
+      jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        description: product.description || `Cumpără ${product.name} pe NEXTLOOK.`,
+        brand: { '@type': 'Brand', name: product.brand || 'NEXTLOOK' },
+        offers: {
+          '@type': 'Offer',
+          priceCurrency: 'RON',
+          price: product.price,
+          availability: product.stock_quantity > 0
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+          url: `https://nextlook.ro/product/${params.slug}`,
+        },
+        ...(image ? { image } : {}),
+      }
+    }
+  } catch {}
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      {children}
+    </>
+  )
 }
