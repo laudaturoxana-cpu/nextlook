@@ -33,5 +33,5 @@ export async function GET(request: NextRequest) {
     (c.objectName || '').toLowerCase().includes('nextlook') ||
     (c.clientName || '').toLowerCase().includes('nextlook')
   )
-  return NextResponse.json({ nextlook, totalClients: clients.length })
+  return NextResponse.json({ nextlook, allClients: clients, totalClients: clients.length })
 }
