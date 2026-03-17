@@ -38,9 +38,10 @@ export async function GET(request: NextRequest) {
 
     const payload = {
       ...credentials,
-      parcels: [{ id: parcelId }],
-      outputType: 'PDF',
+      language: 'RO',
+      format: 'pdf',
       paperSize,
+      parcels: [{ parcel: { id: String(parcelId) } }],
     }
 
     // ── mode=debug: full diagnostic info ────────────────────────────────────
@@ -56,16 +57,10 @@ export async function GET(request: NextRequest) {
 
       // Test all combinations
       const combos = [
-        { label: 'str_A6',      parcels: [{ id: awb }],           outputType: 'PDF', paperSize: 'A6' },
-        { label: 'str_A4',      parcels: [{ id: awb }],           outputType: 'PDF', paperSize: 'A4' },
-        { label: 'str_A4_4xA6', parcels: [{ id: awb }],           outputType: 'PDF', paperSize: 'A4_4xA6' },
-        { label: 'num_A6',      parcels: [{ id: parseInt(awb) }], outputType: 'PDF', paperSize: 'A6' },
-        { label: 'num_A4',      parcels: [{ id: parseInt(awb) }], outputType: 'PDF', paperSize: 'A4' },
-        { label: 'num_A4_4xA6', parcels: [{ id: parseInt(awb) }], outputType: 'PDF', paperSize: 'A4_4xA6' },
-        { label: 'shipId_str_A6',      shipmentId: awb,           outputType: 'PDF', paperSize: 'A6' },
-        { label: 'shipId_str_A4_4xA6', shipmentId: awb,           outputType: 'PDF', paperSize: 'A4_4xA6' },
-        { label: 'shipId_num_A6',      shipmentId: parseInt(awb), outputType: 'PDF', paperSize: 'A6' },
-        { label: 'shipId_num_A4_4xA6', shipmentId: parseInt(awb), outputType: 'PDF', paperSize: 'A4_4xA6' },
+        { label: 'correct_A6',      language: 'RO', format: 'pdf', paperSize: 'A6',      parcels: [{ parcel: { id: awb } }] },
+        { label: 'correct_A4',      language: 'RO', format: 'pdf', paperSize: 'A4',      parcels: [{ parcel: { id: awb } }] },
+        { label: 'correct_A4_4xA6', language: 'RO', format: 'pdf', paperSize: 'A4_4xA6', parcels: [{ parcel: { id: awb } }] },
+        { label: 'EN_A6',           language: 'EN', format: 'pdf', paperSize: 'A6',      parcels: [{ parcel: { id: awb } }] },
       ]
 
       const results: Record<string, unknown> = {}

@@ -196,9 +196,10 @@ async function tryDPDPrint(credentials: object, parcelIds: number[], paperSize: 
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify({
         ...credentials,
-        parcels: parcelIds.map(id => ({ id })),
-        outputType: 'PDF',
+        language: 'RO',
+        format: 'pdf',
         paperSize,
+        parcels: parcelIds.map(id => ({ parcel: { id: id.toString() } })),
       }),
     })
 
