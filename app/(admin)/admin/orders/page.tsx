@@ -178,14 +178,14 @@ export default function AdminOrdersPage() {
                         AWB: {order.awb_number}
                       </span>
                       <a
-                        href="https://myDPD.dpd.ro"
+                        href={`/api/admin/orders/label?awb=${order.awb_number}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
                         className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <Download className="h-3 w-3" />
-                        Print etichetă DPD
+                        Descarcă AWB
                       </a>
                       <a
                         href={`https://tracking.dpd.ro/?awb=${order.awb_number}`}

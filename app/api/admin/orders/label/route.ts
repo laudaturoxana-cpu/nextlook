@@ -23,12 +23,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'AWB lipsă' }, { status: 400 })
     }
 
-    const parcelId = parseInt(awbNumber)
-    if (isNaN(parcelId)) {
-      return NextResponse.json({ error: 'AWB invalid' }, { status: 400 })
-    }
-
-    const pdfBuffer = await getDPDLabel([parcelId])
+    const pdfBuffer = await getDPDLabel([], [awbNumber])
     if (!pdfBuffer) {
       return NextResponse.json({ error: 'Nu s-a putut genera eticheta DPD. AWB-ul poate fi expirat sau invalid.' }, { status: 500 })
     }
