@@ -102,8 +102,8 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
     throw new Error(`Nu am găsit orașul "${recipientCity}" în rețeaua DPD`)
   }
 
-  // Get site ID for sender city
-  const senderSiteId = await getDPDSiteId('Moieciu de Sus')
+  // NEXTLOOK SRL clientId — Moieciu de Sus, str. Principala 20
+  const NEXTLOOK_CLIENT_ID = 50929196303
 
   // Pickup date: today if before 15:00, tomorrow otherwise
   const pickupDate = new Date()
@@ -118,19 +118,9 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
 
   const requestBody: Record<string, unknown> = {
     ...credentials,
-    ...(senderSiteId ? {
-      sender: {
-        clientName: 'NEXTLOOK',
-        privatePerson: false,
-        address: {
-          countryId: ROMANIA_COUNTRY_ID,
-          siteId: senderSiteId,
-          addressNote: 'Str. Principala 20',
-        },
-        phone1: { number: '0749976984' },
-        contactName: 'Eugenia Gori',
-      },
-    } : {}),
+    sender: {
+      clientId: NEXTLOOK_CLIENT_ID,
+    },
     recipient: {
       clientName: recipientName,
       privatePerson: true,
