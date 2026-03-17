@@ -28,5 +28,10 @@ export async function GET(request: NextRequest) {
   })
 
   const data = await res.json()
-  return NextResponse.json(data)
+  const clients = data.clients || []
+  const nextlook = clients.filter((c: any) =>
+    (c.objectName || '').toLowerCase().includes('nextlook') ||
+    (c.clientName || '').toLowerCase().includes('nextlook')
+  )
+  return NextResponse.json({ nextlook, totalClients: clients.length })
 }
