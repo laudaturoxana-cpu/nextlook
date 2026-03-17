@@ -77,6 +77,7 @@ export interface CreateShipmentParams {
 export interface DPDShipmentResult {
   shipmentId: number
   parcelIds: number[]
+  barcodes: string[]
   awbNumber: string
 }
 
@@ -175,8 +176,8 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   }
 
   const parcelIds: number[] = data.parcels?.map((p: { id: number }) => p.id) || []
-  // parcel.id is the actual DPD tracking/AWB number, not seqNo
-  const awbNumber = data.parcels?.[0]?.id?.toString() || data.id.toString()
+  const barcodes: string[] = data.parcels?.map((p: { barcode?: string; id: number }) => p.barcode || p.id.toString()) || []
+  const awbNumber = barcodes[0] || data.parcels?.[0]?.id?.toString() || data.id.toString()
   console.log('DPD shipment created - full parcels:', JSON.stringify(data.parcels), '| shipmentId:', data.id)
 
   // Wait 3s for DPD to finish processing before label is available
@@ -185,11 +186,61 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   return {
     shipmentId: data.id,
     parcelIds,
+    barcodes,
     awbNumber,
   }
 }
 
-async function tryDPDPrint(credentials: object, parcelIds: number[], paperSize: string): Promise<Buffer | null> {
+// Build parcel list for print: use barcode if available, fallback to id
+function buildPrintParcels(parcelIds: number[], barcodes?: string[]) {
+  if (barcodes && barcodes.length > 0) {
+    return barcodes.map(barcode => ({ barcode }))
+  }
+  return parcelIds.map(id => ({ parcel: { id: id.toString() } }))
+}
+
+// Try /print/extended — returns base64 JSON, more reliable on serverless
+async function tryDPDPrintExtended(credentials: object, parcelIds: number[], barcodes: string[], paperSize: string): Promise<Buffer | null> {
+  try {
+    const response = await fetch(`${DPD_API_URL}/print/extended`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify({
+        ...credentials,
+        language: 'RO',
+        format: 'pdf',
+        paperSize,
+        parcels: buildPrintParcels(parcelIds, barcodes),
+      }),
+    })
+
+    const text = await response.text()
+    let json: any
+    try { json = JSON.parse(text) } catch { return null }
+
+    if (json.error) {
+      console.warn(`DPD print/extended [${paperSize}] error:`, json.error?.message)
+      return null
+    }
+
+    if (json.data) {
+      const buffer = Buffer.from(json.data, 'base64')
+      console.log(`DPD print/extended [${paperSize}] base64 decoded: ${buffer.length} bytes`)
+      if (buffer.length > 2000) return buffer
+      console.warn(`DPD print/extended [${paperSize}] too small (${buffer.length} bytes)`)
+      return null
+    }
+
+    console.warn(`DPD print/extended [${paperSize}] no data field:`, text.slice(0, 200))
+    return null
+  } catch (e) {
+    console.error(`DPD print/extended [${paperSize}] error:`, e)
+    return null
+  }
+}
+
+// Try /print — returns raw PDF binary
+async function tryDPDPrint(credentials: object, parcelIds: number[], barcodes: string[], paperSize: string): Promise<Buffer | null> {
   try {
     const response = await fetch(`${DPD_API_URL}/print`, {
       method: 'POST',
@@ -199,7 +250,7 @@ async function tryDPDPrint(credentials: object, parcelIds: number[], paperSize: 
         language: 'RO',
         format: 'pdf',
         paperSize,
-        parcels: parcelIds.map(id => ({ parcel: { id: id.toString() } })),
+        parcels: buildPrintParcels(parcelIds, barcodes),
       }),
     })
 
@@ -208,7 +259,7 @@ async function tryDPDPrint(credentials: object, parcelIds: number[], paperSize: 
     if (contentType.includes('application/pdf')) {
       const buffer = Buffer.from(await response.arrayBuffer())
       console.log(`DPD print [${paperSize}] buffer: ${buffer.length} bytes`)
-      if (buffer.length > 2000) return buffer // real content
+      if (buffer.length > 2000) return buffer
       console.warn(`DPD print [${paperSize}] suspiciously small (${buffer.length} bytes) - blank PDF`)
       return null
     }
@@ -222,15 +273,21 @@ async function tryDPDPrint(credentials: object, parcelIds: number[], paperSize: 
   }
 }
 
-// Get AWB label as PDF buffer — tries A6, A4, A4_4xA6 in order
-export async function getDPDLabel(parcelIds: number[]): Promise<Buffer | null> {
+// Get AWB label as PDF buffer — tries /print/extended (base64) then /print (binary)
+export async function getDPDLabel(parcelIds: number[], barcodes: string[] = []): Promise<Buffer | null> {
   const credentials = getCredentials()
 
   for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
-    const buffer = await tryDPDPrint(credentials, parcelIds, paperSize)
+    const buffer = await tryDPDPrintExtended(credentials, parcelIds, barcodes, paperSize)
     if (buffer) return buffer
   }
 
-  console.error('DPD getDPDLabel: all paper sizes returned blank/empty PDF')
+  // Fallback to binary /print
+  for (const paperSize of ['A6', 'A4', 'A4_4xA6']) {
+    const buffer = await tryDPDPrint(credentials, parcelIds, barcodes, paperSize)
+    if (buffer) return buffer
+  }
+
+  console.error('DPD getDPDLabel: all formats returned blank/empty PDF')
   return null
 }

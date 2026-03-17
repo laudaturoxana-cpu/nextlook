@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         // Download PDF label immediately (DPD only serves it right after creation)
         let awbPdfUrl: string | null = null
         try {
-          const pdfBuffer = await getDPDLabel(dpdResult.parcelIds)
+          const pdfBuffer = await getDPDLabel(dpdResult.parcelIds, dpdResult.barcodes)
           if (pdfBuffer && pdfBuffer.length > 0) {
             const pdfPath = `awb/${orderNumber}-${awbNumber}.pdf`
             const { error: uploadErr } = await adminSupabase.storage

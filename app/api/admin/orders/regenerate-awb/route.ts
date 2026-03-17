@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Download and save PDF
     let awbPdfUrl: string | null = null
     try {
-      const pdfBuffer = await getDPDLabel(dpdResult.parcelIds)
+      const pdfBuffer = await getDPDLabel(dpdResult.parcelIds, dpdResult.barcodes)
       if (pdfBuffer && pdfBuffer.length > 0) {
         const pdfPath = `awb/${orderNumber}-${awbNumber}.pdf`
         const { error: uploadErr } = await adminClient.storage
