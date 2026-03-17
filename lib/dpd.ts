@@ -191,10 +191,10 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   }
 }
 
-// Build parcel list for print: use barcode if available, fallback to id
+// Build parcel list for print — always use parcel.id format (confirmed working)
 function buildPrintParcels(parcelIds: number[], barcodes?: string[]) {
   if (barcodes && barcodes.length > 0) {
-    return barcodes.map(barcode => ({ barcode }))
+    return barcodes.map(id => ({ parcel: { id } }))
   }
   return parcelIds.map(id => ({ parcel: { id: id.toString() } }))
 }
