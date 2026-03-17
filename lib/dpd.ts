@@ -105,11 +105,9 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   // NEXTLOOK SRL clientId — Moieciu de Sus, str. Principala 20
   const NEXTLOOK_CLIENT_ID = 50929196303
 
-  // Pickup date: today if before 15:00, tomorrow otherwise
+  // Pickup date: always tomorrow (next business day) — server runs UTC, avoid same-day cutoff issues
   const pickupDate = new Date()
-  if (pickupDate.getHours() >= 15) {
-    pickupDate.setDate(pickupDate.getDate() + 1)
-  }
+  pickupDate.setDate(pickupDate.getDate() + 1)
   // Skip weekends
   if (pickupDate.getDay() === 6) pickupDate.setDate(pickupDate.getDate() + 2)
   if (pickupDate.getDay() === 0) pickupDate.setDate(pickupDate.getDate() + 1)
