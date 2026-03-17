@@ -105,8 +105,16 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
   // NEXTLOOK SRL clientId — Moieciu de Sus, str. Principala 20
   const NEXTLOOK_CLIENT_ID = 50929196303
 
-  // autoAdjustPickupDate: DPD finds first available pickup day automatically
-  const today = new Date().toISOString().split('T')[0]
+  // Build service object — COD goes inside service.additionalServices per DPD docs
+  const serviceObj: Record<string, unknown> = {
+    serviceId: 2505,
+    autoAdjustPickupDate: true,
+  }
+  if (paymentMethod === 'ramburs') {
+    serviceObj.additionalServices = {
+      cod: { amount: total, processingType: 'CASH' },
+    }
+  }
 
   const requestBody: Record<string, unknown> = {
     ...credentials,
@@ -121,24 +129,15 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
       },
       phone1: { number: recipientPhone.replace(/\s/g, '') },
     },
-    service: {
-      serviceId: 2505, // DPD STANDARD
-      pickupDate: today,
-      autoAdjustPickupDate: true,
-    },
+    service: serviceObj,
     content: {
-      parcels: Array.from({ length: parcelsCount }, (_, i) => ({ seqNo: i + 1, weight: 1 })),
+      parcelsCount,
       totalWeight: parcelsCount,
       contents: `Comanda ${orderNumber} - produse vestimentare`,
       package: 'BOX',
     },
     payment: { courierServicePayer: 'SENDER' },
-  }
-
-  if (paymentMethod === 'ramburs') {
-    requestBody.additionalServices = {
-      cod: { amount: total, currencyCode: 'RON', processingType: 'CASH' },
-    }
+    ref1: orderNumber,
   }
 
   const response = await fetch(`${DPD_API_URL}/shipment`, {
