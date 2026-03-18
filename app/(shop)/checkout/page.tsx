@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const FREE_SHIPPING_THRESHOLD = 9999 // TEST
-const SHIPPING_COST_RAPID = 0 // TEST
+const SHIPPING_COST_RAPID = 1 // TEST — Stripe minim 2 lei total
 const SHIPPING_COST_RAMBURS = 0 // TEST
 
 const checkoutSchema = z.object({

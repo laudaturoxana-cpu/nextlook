@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     const FREE_SHIPPING_THRESHOLD = 9999 // TEST
-    const SHIPPING_COST_RAPID = 0 // TEST
+    const SHIPPING_COST_RAPID = 1 // TEST
     const SHIPPING_COST_RAMBURS = 0 // TEST
 
     let serverShipping = 0
