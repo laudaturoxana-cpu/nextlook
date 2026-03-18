@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
       serverSubtotal = subtotal
     }
 
-    const FREE_SHIPPING_THRESHOLD = 9999 // TEST
-    const SHIPPING_COST_RAPID = 1 // TEST
-    const SHIPPING_COST_RAMBURS = 0 // TEST
+    const FREE_SHIPPING_THRESHOLD = 300
+    const SHIPPING_COST_RAPID = 20
+    const SHIPPING_COST_RAMBURS = 10
 
     let serverShipping = 0
     if (deliveryMethod === 'curier_rapid') {
