@@ -102,9 +102,6 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
     throw new Error(`Nu am găsit orașul "${recipientCity}" în rețeaua DPD`)
   }
 
-  // NEXTLOOK SRL clientId — Moieciu de Sus, str. Principala 20
-  const NEXTLOOK_CLIENT_ID = 50929196303
-
   // Build service object — COD goes inside service.additionalServices per DPD docs
   const serviceObj: Record<string, unknown> = {
     serviceId: 2505,
@@ -115,6 +112,9 @@ export async function createDPDShipment(params: CreateShipmentParams): Promise<D
       cod: { amount: total, processingType: 'CASH' },
     }
   }
+
+  // NEXTLOOK SRL — punct de ridicare Brașov, str. Cărpații 6 (clientId confirmat de DPD support)
+  const NEXTLOOK_CLIENT_ID = 50929196302
 
   const requestBody: Record<string, unknown> = {
     ...credentials,
