@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const FREE_SHIPPING_THRESHOLD = 300
-const SHIPPING_COST_RAPID = 1 // TEST
+const SHIPPING_COST_RAPID = 20
 const SHIPPING_COST_RAMBURS = 0 // TEST
 
 const checkoutSchema = z.object({
