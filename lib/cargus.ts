@@ -86,12 +86,35 @@ const CITY_LOCALITY_MAP: Record<string, number> = {
   'DROBETA-TURNU SEVERIN': 161, 'TURNU SEVERIN': 161,
 }
 
+// Hartă județe → CountyId Cargus
+const COUNTY_ID_MAP: Record<string, number> = {
+  'ALBA': 1, 'ARAD': 2, 'ARGES': 3, 'ARGEȘ': 3, 'BACAU': 4, 'BACĂU': 4,
+  'BIHOR': 5, 'BISTRITA-NASAUD': 6, 'BISTRIȚA-NĂSĂUD': 6, 'BISTRITA NASAUD': 6,
+  'BOTOSANI': 7, 'BOTOȘANI': 7, 'BRASOV': 8, 'BRAȘOV': 8,
+  'BRAILA': 9, 'BRĂILA': 9, 'BUZAU': 10, 'BUZĂU': 10,
+  'CARAS-SEVERIN': 11, 'CARAȘ-SEVERIN': 11, 'CARAS SEVERIN': 11,
+  'CALARASI': 12, 'CĂLĂRAȘI': 12, 'CLUJ': 13, 'CONSTANTA': 14, 'CONSTANȚA': 14,
+  'COVASNA': 15, 'DAMBOVITA': 16, 'DÂMBOVIȚA': 16, 'DOLJ': 17,
+  'GALATI': 18, 'GALAȚI': 18, 'GIURGIU': 19, 'GORJ': 20,
+  'HARGHITA': 21, 'HUNEDOARA': 22, 'IALOMITA': 23, 'IALOMIȚA': 23,
+  'IASI': 24, 'IAȘI': 24, 'ILFOV': 25, 'MARAMURES': 26, 'MARAMUREȘ': 26,
+  'MEHEDINTI': 27, 'MEHEDINȚI': 27, 'MURES': 28, 'MUREȘ': 28,
+  'NEAMT': 29, 'NEAMȚ': 29, 'OLT': 30, 'PRAHOVA': 31,
+  'SATU MARE': 32, 'SALAJ': 33, 'SĂLAJ': 33, 'SIBIU': 34,
+  'SUCEAVA': 35, 'TELEORMAN': 36, 'TIMIS': 37, 'TIMIȘ': 37,
+  'TULCEA': 38, 'VASLUI': 39, 'VALCEA': 40, 'VÂLCEA': 40,
+  'VRANCEA': 41,
+  'BUCURESTI': 42, 'BUCUREȘTI': 42, 'BUCHAREST': 42, 'MUNICIPIUL BUCURESTI': 42,
+}
+
 // Cache dinamic pentru orașe negăsite în hartă
 const localityCache: Record<string, number | null> = {}
 
+const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
+
 async function getCargusLocalityId(token: string, cityName: string, countyName: string): Promise<number | null> {
-  const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
   const normalizedCity = normalize(cityName)
+  const normalizedCounty = normalize(countyName)
 
   // 1. Caută în harta statică
   if (CITY_LOCALITY_MAP[normalizedCity]) {
@@ -103,13 +126,20 @@ async function getCargusLocalityId(token: string, cityName: string, countyName: 
   const partialMatch = Object.entries(CITY_LOCALITY_MAP).find(([k]) => k.startsWith(firstWord))
   if (partialMatch) return partialMatch[1]
 
-  // 3. Fallback: caută dinamic în API
-  const cacheKey = `${normalizedCity}|${normalize(countyName)}`
+  // 3. Fallback: caută dinamic doar în județul specificat (1-2 request-uri, nu 46)
+  const cacheKey = `${normalizedCity}|${normalizedCounty}`
   if (cacheKey in localityCache) return localityCache[cacheKey]
 
-  for (let countyId = 1; countyId <= 46; countyId++) {
+  // Găsește CountyId din județ
+  const countyId = COUNTY_ID_MAP[normalizedCounty] || null
+
+  const countiesToSearch = countyId
+    ? [countyId]
+    : Array.from({ length: 46 }, (_, i) => i + 1) // fallback: toate județele
+
+  for (const cid of countiesToSearch) {
     try {
-      const res = await fetch(`${CARGUS_BASE_URL}/Localities?countryId=1&countyId=${countyId}`, {
+      const res = await fetch(`${CARGUS_BASE_URL}/Localities?countryId=1&countyId=${cid}`, {
         headers: cargusHeaders(token),
       })
       if (!res.ok) continue
@@ -118,13 +148,13 @@ async function getCargusLocalityId(token: string, cityName: string, countyName: 
       const match = data.find(l => normalize(l.Name) === normalizedCity)
       if (match) {
         localityCache[cacheKey] = match.LocalityId
-        console.log(`Cargus: LocalityId dinamic pentru "${cityName}" = ${match.LocalityId}`)
+        console.log(`Cargus: LocalityId dinamic pentru "${cityName}" (jud. ${countyName}) = ${match.LocalityId}`)
         return match.LocalityId
       }
     } catch { continue }
   }
 
-  console.warn(`Cargus: nu am gasit LocalityId pentru "${cityName}"`)
+  console.warn(`Cargus: nu am gasit LocalityId pentru "${cityName}", jud. "${countyName}"`)
   localityCache[cacheKey] = null
   return null
 }
@@ -198,7 +228,9 @@ export async function createCargusShipment(params: CreateCargusShipmentParams): 
   if (recipientLocalityId) {
     recipient.LocalityId = recipientLocalityId
   } else {
-    recipient.LocalityName = recipientCity
+    // Trimite fără diacritice — Cargus nu acceptă caractere speciale în LocalityName
+    recipient.LocalityName = normalize(recipientCity)
+    recipient.CountyName = normalize(recipientCounty)
   }
 
   const body = {
