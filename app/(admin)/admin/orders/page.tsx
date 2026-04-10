@@ -179,16 +179,16 @@ export default function AdminOrdersPage() {
                       </span>
                       <a
                         href={order.awb_courier === 'cargus'
-                          ? `https://app.cargus.ro/Expedieri/PrintAWB?awbNumber=${order.awb_number}`
+                          ? `https://app.cargus.ro/Expedieri`
                           : `/api/admin/orders/label?awb=${order.awb_number}&courier=dpd`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
                         className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors"
-                        title={order.awb_courier === 'cargus' ? `Printează AWB ${order.awb_number} în WebExpress` : 'Descarcă etichetă'}
+                        title={order.awb_courier === 'cargus' ? `Caută AWB ${order.awb_number} în WebExpress și printează` : 'Descarcă etichetă'}
                       >
                         <Download className="h-3 w-3" />
-                        Descarcă
+                        {order.awb_courier === 'cargus' ? 'WebExpress' : 'Descarcă'}
                       </a>
                       <a
                         href={order.awb_courier === 'dpd'
