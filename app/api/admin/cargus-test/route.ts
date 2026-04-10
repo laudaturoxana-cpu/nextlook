@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       if (!awb) return NextResponse.json({ error: 'Parametru ?awb=NUMAR lipsa' })
       const buffer = await getCargusLabel(awb)
       if (!buffer) return NextResponse.json({ error: 'Eticheta nu a putut fi descarcata' })
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `inline; filename="cargus-${awb}.pdf"`,
