@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getCargusLabel } from '@/lib/cargus'
 import { getDPDLabel } from '@/lib/dpd'
 
 export const dynamic = 'force-dynamic'
@@ -19,13 +20,24 @@ export async function GET(request: NextRequest) {
     }
 
     const awbNumber = request.nextUrl.searchParams.get('awb')
+    const courier = request.nextUrl.searchParams.get('courier') || 'cargus'
+
     if (!awbNumber) {
       return NextResponse.json({ error: 'AWB lipsă' }, { status: 400 })
     }
 
-    const pdfBuffer = await getDPDLabel([], [awbNumber])
+    let pdfBuffer: Buffer | null = null
+    if (courier === 'dpd') {
+      pdfBuffer = await getDPDLabel([], [awbNumber])
+    } else {
+      pdfBuffer = await getCargusLabel(awbNumber)
+    }
+
     if (!pdfBuffer) {
-      return NextResponse.json({ error: 'Nu s-a putut genera eticheta DPD. AWB-ul poate fi expirat sau invalid.' }, { status: 500 })
+      return NextResponse.json(
+        { error: `Nu s-a putut genera eticheta ${courier.toUpperCase()}. AWB-ul poate fi expirat sau invalid.` },
+        { status: 500 }
+      )
     }
 
     return new NextResponse(new Uint8Array(pdfBuffer), {

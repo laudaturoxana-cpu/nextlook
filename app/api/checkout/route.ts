@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { generateOrderNumber } from '@/lib/utils'
+import { createCargusShipment, getCargusLabel } from '@/lib/cargus'
 import { createDPDShipment, getDPDLabel } from '@/lib/dpd'
 import { sendOwnerOrderNotification, sendCustomerOrderConfirmation } from '@/lib/emails'
 
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       total,
       deliveryMethod,
       paymentMethod,
+      courierChoice = 'cargus',
     } = body
 
     // Get current user (optional - allows guest checkout)
@@ -153,64 +155,96 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to create order items: ${itemsError.message}`)
     }
 
-    // Generate DPD AWB for courier deliveries (not for pickup)
+    // Decrement stock for each purchased item
+    for (const item of orderItems) {
+      if (!item.product_id) continue
+      try {
+        await adminSupabase.rpc('decrement_product_stock', {
+          p_product_id: item.product_id,
+          p_size: item.size || '',
+          p_quantity: item.quantity,
+        })
+      } catch (stockErr) {
+        // Non-fatal: log but don't fail the order
+        console.error('Stock decrement error (non-fatal):', stockErr)
+      }
+    }
+
+    // Generate AWB for courier deliveries (not for pickup)
     let awbNumber: string | null = null
-    let dpdShipmentId: number | null = null
+    const awbCourier: 'cargus' | 'dpd' = courierChoice === 'dpd' ? 'dpd' : 'cargus'
 
     if (deliveryMethod === 'curier_rapid' || deliveryMethod === 'curier_gratuit') {
       try {
-        const dpdResult = await createDPDShipment({
-          recipientName: fullName,
-          recipientPhone: phone,
-          recipientCity: city,
-          recipientAddress: address,
-          recipientPostCode: postalCode,
-          total: serverTotal,
-          paymentMethod,
-          orderNumber,
-          parcelsCount: items.length || 1,
-        })
+        let awbPdfBuffer: Buffer | null = null
 
-        awbNumber = dpdResult.awbNumber
-        dpdShipmentId = dpdResult.shipmentId
+        if (awbCourier === 'dpd') {
+          const dpdResult = await createDPDShipment({
+            recipientName: fullName,
+            recipientPhone: phone,
+            recipientCity: city,
+            recipientAddress: address,
+            recipientPostCode: postalCode,
+            total: serverTotal,
+            paymentMethod,
+            orderNumber,
+            parcelsCount: 1,
+          })
+          awbNumber = dpdResult.awbNumber
+          awbPdfBuffer = await getDPDLabel(dpdResult.parcelIds, dpdResult.barcodes)
+          console.log(`DPD AWB generat: ${awbNumber} pentru comanda ${orderNumber}`)
+        } else {
+          const cargusResult = await createCargusShipment({
+            recipientName: fullName,
+            recipientPhone: phone,
+            recipientCity: city,
+            recipientCounty: county,
+            recipientAddress: address,
+            recipientPostCode: postalCode,
+            total: serverTotal,
+            paymentMethod,
+            orderNumber,
+            parcelsCount: 1,
+          })
+          awbNumber = cargusResult.awbNumber
+          awbPdfBuffer = await getCargusLabel(awbNumber)
+          console.log(`Cargus AWB generat: ${awbNumber} pentru comanda ${orderNumber}`)
+        }
 
-        // Download PDF label immediately (DPD only serves it right after creation)
+        // Upload PDF label
         let awbPdfUrl: string | null = null
         try {
-          const pdfBuffer = await getDPDLabel(dpdResult.parcelIds, dpdResult.barcodes)
-          if (pdfBuffer && pdfBuffer.length > 0) {
+          if (awbPdfBuffer && awbPdfBuffer.length > 0) {
             const pdfPath = `awb/${orderNumber}-${awbNumber}.pdf`
             const { error: uploadErr } = await adminSupabase.storage
               .from('product-images')
-              .upload(pdfPath, new Uint8Array(pdfBuffer), { contentType: 'application/pdf', upsert: true })
+              .upload(pdfPath, new Uint8Array(awbPdfBuffer), { contentType: 'application/pdf', upsert: true })
             if (!uploadErr) {
               const { data: { publicUrl } } = adminSupabase.storage.from('product-images').getPublicUrl(pdfPath)
               awbPdfUrl = publicUrl
-              console.log(`AWB PDF saved: ${awbPdfUrl}`)
             }
           }
         } catch (pdfErr) {
-          console.error('AWB PDF save error (non-fatal):', pdfErr)
+          console.error('AWB PDF eroare (non-fatal):', pdfErr)
         }
 
-        // Save AWB to order's shipping_address JSONB
+        // Save AWB to order
         await adminSupabase
           .from('orders')
           .update({
             shipping_address: {
               ...shippingAddress,
               awb_number: awbNumber,
-              dpd_shipment_id: dpdShipmentId,
+              awb_courier: awbCourier,
               awb_pdf_url: awbPdfUrl,
             },
             status: 'confirmed',
           })
           .eq('id', order.id)
 
-        console.log(`DPD AWB generated: ${awbNumber} for order ${orderNumber}`)
-      } catch (dpdError: any) {
-        // Log DPD error but don't fail the order
-        console.error('DPD shipment error (order still created):', dpdError?.message, '| Full error:', JSON.stringify(dpdError))
+      } catch (awbError: any) {
+        // Log error but don't fail the order
+        console.error(`${awbCourier.toUpperCase()} eroare (comanda a fost creata):`, awbError?.message)
       }
     }
 

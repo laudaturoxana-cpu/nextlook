@@ -19,7 +19,7 @@ interface Order {
   shipping_county: string
   delivery_method: string
   awb_number: string | null
-  dpd_shipment_id: number | null
+  awb_courier: 'cargus' | 'dpd' | null
   awb_pdf_url: string | null
   order_items: { id: string; product_name: string; quantity: number; price: number; size?: string }[]
 }
@@ -75,17 +75,17 @@ export default function AdminOrdersPage() {
     }
   }
 
-  const regenerateAWB = async (orderId: string) => {
+  const regenerateAWB = async (orderId: string, courier: 'cargus' | 'dpd') => {
     setGeneratingAwb(orderId)
     try {
       const res = await fetch('/api/admin/orders/regenerate-awb', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, courier }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Eroare')
-      toast.success(`AWB generat: ${data.awbNumber}`)
+      toast.success(`AWB ${courier.toUpperCase()} generat: ${data.awbNumber}`)
       loadOrders()
     } catch (e: any) {
       toast.error(e.message || 'Nu s-a putut genera AWB-ul')
@@ -171,42 +171,57 @@ export default function AdminOrdersPage() {
                 </div>
 
                 {/* AWB */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {order.awb_number ? (
                     <>
-                      <span className="text-xs font-bold text-gray-900 font-mono bg-yellow-50 border border-yellow-300 px-2 py-1 rounded">
-                        AWB: {order.awb_number}
+                      <span className={`text-xs font-bold px-2 py-1 rounded border font-mono ${order.awb_courier === 'dpd' ? 'bg-red-50 border-red-300 text-red-800' : 'bg-orange-50 border-orange-300 text-orange-800'}`}>
+                        {order.awb_courier?.toUpperCase() || 'AWB'}: {order.awb_number}
                       </span>
                       <a
-                        href={`/api/admin/orders/label?awb=${order.awb_number}`}
+                        href={order.awb_courier === 'cargus'
+                          ? `https://app.cargus.ro/Expedieri/PrintAWB?awbNumber=${order.awb_number}`
+                          : `/api/admin/orders/label?awb=${order.awb_number}&courier=dpd`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
                         className="flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-700 transition-colors"
+                        title={order.awb_courier === 'cargus' ? `Printează AWB ${order.awb_number} în WebExpress` : 'Descarcă etichetă'}
                       >
                         <Download className="h-3 w-3" />
-                        Descarcă AWB
+                        Descarcă
                       </a>
                       <a
-                        href={`https://tracking.dpd.ro/?awb=${order.awb_number}`}
+                        href={order.awb_courier === 'dpd'
+                          ? `https://tracking.dpd.ro/?awb=${order.awb_number}`
+                          : `https://www.cargus.ro/tracking-romanian/?trackingReference=${order.awb_number}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         <ExternalLink className="h-3 w-3" />
                         Tracking
                       </a>
                     </>
                   ) : (
-                    <button
-                      onClick={e => { e.stopPropagation(); regenerateAWB(order.id) }}
-                      disabled={generatingAwb === order.id}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 text-white text-xs rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
-                    >
-                      <Package className="h-3 w-3" />
-                      {generatingAwb === order.id ? 'Se generează...' : 'Generează AWB'}
-                    </button>
+                    <>
+                      <button
+                        onClick={e => { e.stopPropagation(); regenerateAWB(order.id, 'cargus') }}
+                        disabled={generatingAwb === order.id}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white text-xs rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                      >
+                        <Package className="h-3 w-3" />
+                        {generatingAwb === order.id ? '...' : 'AWB Cargus'}
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); regenerateAWB(order.id, 'dpd') }}
+                        disabled={generatingAwb === order.id}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        <Package className="h-3 w-3" />
+                        {generatingAwb === order.id ? '...' : 'AWB DPD'}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
