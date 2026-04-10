@@ -86,68 +86,29 @@ const CITY_LOCALITY_MAP: Record<string, number> = {
   'DROBETA-TURNU SEVERIN': 161, 'TURNU SEVERIN': 161,
 }
 
-// Cache complet al tuturor localităților Cargus (populat la primul miss)
-// Cheie: nume normalizat → LocalityId
-let allLocalitiesCache: Record<string, number> | null = null
+// Toate localitățile Cargus din România — fișier static generat o singură dată
+// 13.636 localități, lookup instant fără API calls
+import allLocalitiesData from './cargus-localities.json'
+const ALL_LOCALITIES: Record<string, number> = allLocalitiesData as Record<string, number>
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
 
-// Cache per-request pentru orașe individuale
-const localityCache: Record<string, number | null> = {}
-
-async function loadAllLocalities(token: string): Promise<Record<string, number>> {
-  if (allLocalitiesCache) return allLocalitiesCache
-
-  // Fetch toate cele 46 județe în PARALEL (nu secvențial)
-  console.log('Cargus: fetch toate localitățile în paralel...')
-  const results = await Promise.allSettled(
-    Array.from({ length: 46 }, (_, i) =>
-      fetch(`${CARGUS_BASE_URL}/Localities?countryId=1&countyId=${i + 1}`, {
-        headers: cargusHeaders(token),
-      }).then(r => r.ok ? r.json() : [])
-    )
-  )
-
-  const map: Record<string, number> = {}
-  for (const result of results) {
-    if (result.status === 'fulfilled' && Array.isArray(result.value)) {
-      for (const loc of result.value as Array<{ LocalityId: number; Name: string }>) {
-        if (loc.LocalityId && loc.Name) {
-          map[normalize(loc.Name)] = loc.LocalityId
-        }
-      }
-    }
-  }
-
-  allLocalitiesCache = map
-  console.log(`Cargus: ${Object.keys(map).length} localități încărcate`)
-  return map
-}
-
-async function getCargusLocalityId(token: string, cityName: string, _countyName: string): Promise<number | null> {
+async function getCargusLocalityId(_token: string, cityName: string, _countyName: string): Promise<number | null> {
   const normalizedCity = normalize(cityName)
 
-  // 1. Caută în harta statică (orașele mari — instant)
+  // Caută în harta statică a orașelor mari (pentru compatibilitate)
   if (CITY_LOCALITY_MAP[normalizedCity]) {
     return CITY_LOCALITY_MAP[normalizedCity]
   }
 
-  // 2. Cache per-request
-  if (normalizedCity in localityCache) return localityCache[normalizedCity]
-
-  // 3. Încarcă toate localitățile în paralel și caută
-  const allLocalities = await loadAllLocalities(token)
-  const found = allLocalities[normalizedCity] ?? null
-
-  localityCache[normalizedCity] = found
-
-  if (found) {
-    console.log(`Cargus: LocalityId pentru "${cityName}" = ${found}`)
-  } else {
-    console.warn(`Cargus: nu am găsit LocalityId pentru "${cityName}"`)
+  // Caută în lista completă de 13.636 localități (fișier static, fără API calls)
+  if (ALL_LOCALITIES[normalizedCity]) {
+    console.log(`Cargus: LocalityId pentru "${cityName}" = ${ALL_LOCALITIES[normalizedCity]}`)
+    return ALL_LOCALITIES[normalizedCity]
   }
 
-  return found
+  console.warn(`Cargus: nu am găsit LocalityId pentru "${cityName}"`)
+  return null
 }
 
 export interface CreateCargusShipmentParams {
