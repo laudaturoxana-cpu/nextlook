@@ -18,8 +18,8 @@ import { cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const FREE_SHIPPING_THRESHOLD = 300
-const SHIPPING_COST_RAPID = 20
-const SHIPPING_COST_RAMBURS = 10
+const SHIPPING_COST_RAPID = 1 // TEST
+const SHIPPING_COST_RAMBURS = 0 // TEST
 
 const checkoutSchema = z.object({
   email: z.string().email('Adresă de email invalidă'),
@@ -74,6 +74,7 @@ export default function CheckoutPage() {
   const [isClient, setIsClient] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [deliveryMethod, setDeliveryMethod] = useState('curier_rapid')
+  const [courierChoice, setCourierChoice] = useState<'cargus' | 'dpd'>('cargus')
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [createAccount, setCreateAccount] = useState(false)
   const [accountPassword, setAccountPassword] = useState('')
@@ -132,6 +133,7 @@ export default function CheckoutPage() {
         total,
         deliveryMethod,
         paymentMethod,
+        courierChoice,
       }
 
       const response = await fetch('/api/checkout', {
@@ -402,6 +404,51 @@ export default function CheckoutPage() {
                       </label>
                     )
                   })}
+                </div>
+
+                {/* Courier selector */}
+                <div className="mt-5 pt-5 border-t border-sand">
+                  <p className="text-sm font-medium text-text mb-3">Alege firma de curierat:</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label
+                      className={cn(
+                        'flex flex-col items-center gap-2 p-4 border rounded-xl cursor-pointer transition-colors',
+                        courierChoice === 'cargus'
+                          ? 'border-[#f97316] bg-orange-50'
+                          : 'border-sand hover:border-orange-300'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="courier"
+                        value="cargus"
+                        checked={courierChoice === 'cargus'}
+                        onChange={() => setCourierChoice('cargus')}
+                        className="sr-only"
+                      />
+                      <span className="text-lg font-bold text-[#f97316] tracking-wide">CARGUS</span>
+                      <span className="text-xs text-text-secondary text-center">Livrare în toată România</span>
+                    </label>
+                    <label
+                      className={cn(
+                        'flex flex-col items-center gap-2 p-4 border rounded-xl cursor-pointer transition-colors',
+                        courierChoice === 'dpd'
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-sand hover:border-red-300'
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="courier"
+                        value="dpd"
+                        checked={courierChoice === 'dpd'}
+                        onChange={() => setCourierChoice('dpd')}
+                        className="sr-only"
+                      />
+                      <span className="text-lg font-bold text-red-600 tracking-wide">DPD</span>
+                      <span className="text-xs text-text-secondary text-center">Livrare în toată România</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
