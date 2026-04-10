@@ -94,7 +94,9 @@ const ALL_LOCALITIES: Record<string, number> = allLocalitiesData as Record<strin
 const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim()
 
 async function getCargusLocalityId(_token: string, cityName: string, _countyName: string): Promise<number | null> {
-  const normalizedCity = normalize(cityName)
+  // Curăță paranteze (ex: "Tunari (Tunari)" → "Tunari", "Sector 1 (București)" → "Sector 1")
+  const cleanCity = cityName.replace(/\s*\(.*\)/, '').trim()
+  const normalizedCity = normalize(cleanCity)
 
   // Caută în harta statică a orașelor mari (pentru compatibilitate)
   if (CITY_LOCALITY_MAP[normalizedCity]) {
