@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createCargusShipment, getCargusLabel } from '@/lib/cargus'
 import { createDPDShipment, getDPDLabel } from '@/lib/dpd'
 
 export const dynamic = 'force-dynamic'
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { orderId } = await request.json()
+    const { orderId, courier } = await request.json()
     if (!orderId) {
       return NextResponse.json({ error: 'orderId lipsă' }, { status: 400 })
     }
@@ -40,26 +41,46 @@ export async function POST(request: NextRequest) {
     }
 
     const orderNumber = addr.order_number || order.id.slice(0, 8).toUpperCase()
+    // Use courier from request, or from existing order data, or default to cargus
+    const awbCourier: 'cargus' | 'dpd' = (courier || addr.awb_courier || 'cargus') as 'cargus' | 'dpd'
 
-    const dpdResult = await createDPDShipment({
-      recipientName: addr.full_name || '',
-      recipientPhone: order.guest_phone || '',
-      recipientCity: addr.city || '',
-      recipientAddress: addr.address || '',
-      recipientPostCode: addr.postal_code,
-      total: order.total,
-      paymentMethod: order.payment_method || 'card',
-      orderNumber,
-      parcelsCount: 1,
-    })
+    let awbNumber: string
+    let pdfBuffer: Buffer | null = null
 
-    const awbNumber = dpdResult.awbNumber
-    const dpdShipmentId = dpdResult.shipmentId
+    if (awbCourier === 'dpd') {
+      const dpdResult = await createDPDShipment({
+        recipientName: addr.full_name || '',
+        recipientPhone: order.guest_phone || '',
+        recipientCity: addr.city || '',
+        recipientAddress: addr.address || '',
+        recipientPostCode: addr.postal_code,
+        total: order.total,
+        paymentMethod: order.payment_method || 'card',
+        orderNumber,
+        parcelsCount: 1,
+      })
+      awbNumber = dpdResult.awbNumber
+      pdfBuffer = await getDPDLabel(dpdResult.parcelIds, dpdResult.barcodes)
+    } else {
+      const cargusResult = await createCargusShipment({
+        recipientName: addr.full_name || '',
+        recipientPhone: order.guest_phone || '',
+        recipientCity: addr.city || '',
+        recipientCounty: addr.county || '',
+        recipientAddress: addr.address || '',
+        recipientPostCode: addr.postal_code,
+        total: order.total,
+        paymentMethod: order.payment_method || 'card',
+        orderNumber,
+        parcelsCount: 1,
+      })
+      awbNumber = cargusResult.awbNumber
+      pdfBuffer = await getCargusLabel(awbNumber)
+    }
 
-    // Download and save PDF
+    // Upload PDF label
     let awbPdfUrl: string | null = null
     try {
-      const pdfBuffer = await getDPDLabel(dpdResult.parcelIds, dpdResult.barcodes)
       if (pdfBuffer && pdfBuffer.length > 0) {
         const pdfPath = `awb/${orderNumber}-${awbNumber}.pdf`
         const { error: uploadErr } = await adminClient.storage
@@ -80,14 +101,14 @@ export async function POST(request: NextRequest) {
         shipping_address: {
           ...addr,
           awb_number: awbNumber,
-          dpd_shipment_id: dpdShipmentId,
+          awb_courier: awbCourier,
           awb_pdf_url: awbPdfUrl,
         },
         status: 'confirmed',
       })
       .eq('id', orderId)
 
-    return NextResponse.json({ awbNumber, dpdShipmentId, awbPdfUrl })
+    return NextResponse.json({ awbNumber, awbCourier, awbPdfUrl })
   } catch (error: any) {
     console.error('Regenerate AWB error:', error)
     return NextResponse.json({ error: error?.message || 'Eroare la generarea AWB' }, { status: 500 })

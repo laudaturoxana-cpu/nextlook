@@ -15,6 +15,7 @@ import {
   Shield,
   ChevronRight,
   Check,
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
@@ -109,10 +110,34 @@ export default function ProductPage() {
     ? calculateDiscount(product.price, product.old_price)
     : 0
 
+  // Stock helpers
+  const totalStock = product ? ((product as any).stock_quantity ?? product.stock ?? 0) : 0
+  const isProductOutOfStock = totalStock === 0
+
+  const isSizeOutOfStock = (size: string): boolean => {
+    if (!product?.size_stocks) return false
+    const sizeStock = product.size_stocks[size]
+    return sizeStock !== undefined && sizeStock === 0
+  }
+
+  const getSizeRemainingStock = (size: string): number | null => {
+    if (!product?.size_stocks) return null
+    const sizeStock = product.size_stocks[size]
+    return sizeStock !== undefined ? sizeStock : null
+  }
+
   const handleAddToCart = () => {
     if (!product) return
+    if (isProductOutOfStock) {
+      toast.error('Ne pare rău, produsul nu mai este pe stoc')
+      return
+    }
     if (!selectedSize) {
       toast.error('Te rugăm să selectezi o mărime')
+      return
+    }
+    if (isSizeOutOfStock(selectedSize)) {
+      toast.error(`Mărimea ${selectedSize} nu mai este disponibilă`)
       return
     }
     addItem(product, selectedSize, selectedColor, quantity)
@@ -131,8 +156,16 @@ export default function ProductPage() {
 
   const handleBuyNow = () => {
     if (!product) return
+    if (isProductOutOfStock) {
+      toast.error('Ne pare rău, produsul nu mai este pe stoc')
+      return
+    }
     if (!selectedSize) {
       toast.error('Te rugăm să selectezi o mărime')
+      return
+    }
+    if (isSizeOutOfStock(selectedSize)) {
+      toast.error(`Mărimea ${selectedSize} nu mai este disponibilă`)
       return
     }
     addItem(product, selectedSize, selectedColor, quantity)
@@ -244,10 +277,16 @@ export default function ProductPage() {
 
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
-                {product.is_new && <Badge variant="new">NOU</Badge>}
-                {discount > 0 && <Badge variant="sale">-{discount}%</Badge>}
-                {product.stock <= 3 && product.stock > 0 && (
-                  <Badge variant="stock">Ultimele {product.stock}</Badge>
+                {isProductOutOfStock ? (
+                  <Badge variant="stock" className="bg-red-500 text-white border-red-500">EPUIZAT</Badge>
+                ) : (
+                  <>
+                    {product.is_new && <Badge variant="new">NOU</Badge>}
+                    {discount > 0 && <Badge variant="sale">-{discount}%</Badge>}
+                    {totalStock <= 3 && totalStock > 0 && (
+                      <Badge variant="stock">Ultimele {totalStock}</Badge>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -379,21 +418,50 @@ export default function ProductPage() {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={cn(
-                        'min-w-[48px] h-12 px-4 rounded-xl border-2 font-medium transition-all',
-                        selectedSize === size
-                          ? 'border-gold bg-gold text-white'
-                          : 'border-sand text-text hover:border-gold'
-                      )}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.sizes.map((size) => {
+                    const soldOut = isSizeOutOfStock(size)
+                    const remaining = getSizeRemainingStock(size)
+                    return (
+                      <div key={size} className="relative">
+                        <button
+                          onClick={() => !soldOut && setSelectedSize(size)}
+                          disabled={soldOut}
+                          title={soldOut ? `Mărimea ${size} nu mai este disponibilă` : remaining !== null && remaining <= 3 && remaining > 0 ? `Ultimele ${remaining} în stoc` : undefined}
+                          className={cn(
+                            'min-w-[48px] h-12 px-4 rounded-xl border-2 font-medium transition-all',
+                            soldOut
+                              ? 'border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                              : selectedSize === size
+                              ? 'border-gold bg-gold text-white'
+                              : 'border-sand text-text hover:border-gold'
+                          )}
+                        >
+                          {size}
+                        </button>
+                        {/* Diagonal line overlay for sold-out sizes */}
+                        {soldOut && (
+                          <div className="absolute inset-0 pointer-events-none rounded-xl overflow-hidden">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-full h-px bg-gray-300 rotate-45 scale-150" />
+                            </div>
+                          </div>
+                        )}
+                        {/* Low stock indicator */}
+                        {!soldOut && remaining !== null && remaining <= 3 && remaining > 0 && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-400 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                            {remaining}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
+                {/* Sold-out sizes legend */}
+                {product.sizes.some(s => isSizeOutOfStock(s)) && (
+                  <p className="text-xs text-text-secondary mt-2">
+                    Mărimile tăiate nu mai sunt disponibile
+                  </p>
+                )}
               </div>
             )}
 
@@ -417,13 +485,35 @@ export default function ProductPage() {
               </div>
             </div>
 
+            {/* Out of stock banner */}
+            {isProductOutOfStock && (
+              <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-red-700">Produsul nu mai este pe stoc</p>
+                  <p className="text-sm text-red-500">Momentan nu avem acest produs disponibil. Adaugă-l la favorite pentru a fi notificat când revine.</p>
+                </div>
+              </div>
+            )}
+
             {/* CTA Buttons */}
             <div className="space-y-3">
-              <Button onClick={handleAddToCart} className="w-full" size="lg">
-                Adaugă în Coș
+              <Button
+                onClick={handleAddToCart}
+                className="w-full"
+                size="lg"
+                disabled={isProductOutOfStock || (!!selectedSize && isSizeOutOfStock(selectedSize))}
+              >
+                {isProductOutOfStock ? 'Stoc Epuizat' : 'Adaugă în Coș'}
               </Button>
-              <Button onClick={handleBuyNow} variant="secondary" className="w-full" size="lg">
-                Cumpără Acum
+              <Button
+                onClick={handleBuyNow}
+                variant="secondary"
+                className="w-full"
+                size="lg"
+                disabled={isProductOutOfStock || (!!selectedSize && isSizeOutOfStock(selectedSize))}
+              >
+                {isProductOutOfStock ? 'Indisponibil' : 'Cumpără Acum'}
               </Button>
               <button
                 onClick={() => {

@@ -42,6 +42,7 @@ export default async function EditProductPage({
         original_price: product.original_price?.toString() || '',
         stock_quantity: product.stock_quantity?.toString() || '0',
         sizes: product.sizes || [],
+        size_stocks: product.size_stocks || {},
         colors,
         images: product.images || [],
         is_featured: product.is_featured || false,

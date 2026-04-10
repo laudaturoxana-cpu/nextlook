@@ -18,6 +18,8 @@ export interface Product {
   colors: ProductColor[];
   images: string[];
   stock: number;
+  stock_quantity?: number; // DB column name (same as stock)
+  size_stocks?: Record<string, number>; // per-size inventory: {"36": 3, "37": 0}
   is_featured: boolean;
   is_bestseller: boolean;
   is_new: boolean;

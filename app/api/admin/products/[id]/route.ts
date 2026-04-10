@@ -37,6 +37,7 @@ export async function PUT(
         brand: body.brand || null,
         stock_quantity: parseInt(body.stock_quantity) || 0,
         sizes: body.sizes || [],
+        size_stocks: body.size_stocks || {},
         colors: body.colors || [],
         images: body.images || [],
         is_featured: body.is_featured || false,

@@ -27,9 +27,16 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     ? calculateDiscount(product.price, product.old_price)
     : 0
 
+  const totalStock = (product as any).stock_quantity ?? product.stock ?? 0
+  const isOutOfStock = totalStock === 0
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    if (isOutOfStock) {
+      toast.error('Produsul nu mai este pe stoc')
+      return
+    }
     addItem(product, product.sizes?.[0] || null, product.colors?.[0]?.name || null)
   }
 
@@ -64,17 +71,23 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-2">
-              {product.is_new && (
-                <Badge variant="new" pulse>NOU</Badge>
-              )}
-              {product.is_bestseller && (
-                <Badge variant="gold">BESTSELLER</Badge>
-              )}
-              {discount > 0 && (
-                <Badge variant="sale">-{discount}%</Badge>
-              )}
-              {product.stock <= 3 && product.stock > 0 && (
-                <Badge variant="stock">Ultimele {product.stock}</Badge>
+              {isOutOfStock ? (
+                <Badge variant="stock" className="bg-red-500 text-white border-red-500">EPUIZAT</Badge>
+              ) : (
+                <>
+                  {product.is_new && (
+                    <Badge variant="new" pulse>NOU</Badge>
+                  )}
+                  {product.is_bestseller && (
+                    <Badge variant="gold">BESTSELLER</Badge>
+                  )}
+                  {discount > 0 && (
+                    <Badge variant="sale">-{discount}%</Badge>
+                  )}
+                  {totalStock <= 3 && totalStock > 0 && (
+                    <Badge variant="stock">Ultimele {totalStock}</Badge>
+                  )}
+                </>
               )}
             </div>
 
@@ -89,28 +102,39 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-red-500' : ''}`} />
             </button>
 
-            {/* Hover Actions */}
-            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleAddToCart}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-gold text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-gold-dark transition-colors"
-                >
-                  <ShoppingBag className="h-4 w-4" />
-                  Adaugă în Coș
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                  }}
-                  className="p-3 bg-white text-text rounded-full hover:bg-cream-50 transition-colors"
-                  aria-label="Vizualizare rapidă"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
+            {/* Out of stock overlay */}
+            {isOutOfStock && (
+              <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+                <span className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow">
+                  Stoc Epuizat
+                </span>
               </div>
-            </div>
+            )}
+
+            {/* Hover Actions */}
+            {!isOutOfStock && (
+              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddToCart}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-gold text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-gold-dark transition-colors"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    Adaugă în Coș
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    className="p-3 bg-white text-text rounded-full hover:bg-cream-50 transition-colors"
+                    aria-label="Vizualizare rapidă"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Product Info */}

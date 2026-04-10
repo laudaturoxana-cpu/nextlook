@@ -28,6 +28,7 @@ interface ProductFormData {
   original_price: string
   stock_quantity: string
   sizes: string[]
+  size_stocks?: Record<string, number>
   colors: ColorEntry[]
   images: string[]
   is_featured: boolean
@@ -73,6 +74,9 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
   const [uploading, setUploading] = useState(false)
   const [sizeInput, setSizeInput] = useState('')
   const [dragging, setDragging] = useState(false)
+  const [sizeStocks, setSizeStocks] = useState<Record<string, number>>(
+    initialData?.size_stocks || {}
+  )
   const fileInputRef = useRef<HTMLInputElement>(null)
   const slugManuallyEdited = useRef(isEdit)
 
@@ -135,13 +139,25 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
     if (!val) return
     if (!form.sizes.includes(val)) {
       setForm(prev => ({ ...prev, sizes: [...prev.sizes, val] }))
+      setSizeStocks(prev => ({ ...prev, [val]: prev[val] ?? 1 }))
     }
     setSizeInput('')
   }
 
   const removeSize = (size: string) => {
     setForm(prev => ({ ...prev, sizes: prev.sizes.filter(s => s !== size) }))
+    setSizeStocks(prev => {
+      const copy = { ...prev }
+      delete copy[size]
+      return copy
+    })
   }
+
+  const updateSizeStock = (size: string, qty: number) => {
+    setSizeStocks(prev => ({ ...prev, [size]: Math.max(0, qty) }))
+  }
+
+  const totalStock = Object.values(sizeStocks).reduce((sum, q) => sum + q, 0)
 
   // Colors
   const addColor = () => {
@@ -169,6 +185,8 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
     try {
       const payload = {
         ...form,
+        size_stocks: sizeStocks,
+        stock_quantity: form.sizes.length > 0 ? totalStock : parseInt(form.stock_quantity) || 0,
         // Save colors as "Nume|#hex" strings in the TEXT[] array
         colors: form.colors
           .filter(c => c.name.trim())
@@ -313,18 +331,21 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
               />
             </div>
 
-            {/* Stock */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stoc (bucăți)</label>
-              <input
-                type="number"
-                value={form.stock_quantity}
-                onChange={e => setForm(prev => ({ ...prev, stock_quantity: e.target.value }))}
-                placeholder="10"
-                min="0"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              />
-            </div>
+            {/* Stock — auto-calculated from sizes. Show manual input only if no sizes */}
+            {form.sizes.length === 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stoc (bucăți)</label>
+                <input
+                  type="number"
+                  value={form.stock_quantity}
+                  onChange={e => setForm(prev => ({ ...prev, stock_quantity: e.target.value }))}
+                  placeholder="10"
+                  min="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-400 mt-1">Se calculează automat dacă adaugi mărimi mai jos.</p>
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -409,7 +430,17 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
 
         {/* Sizes */}
         <section className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Mărimi disponibile</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">Mărimi & Stoc</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Adaugă fiecare mărime și câte bucăți ai în stoc</p>
+            </div>
+            {form.sizes.length > 0 && (
+              <span className="text-sm text-gray-500">
+                Total: <span className="font-semibold text-gray-900">{totalStock} buc.</span>
+              </span>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <input
@@ -417,39 +448,72 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
               value={sizeInput}
               onChange={e => setSizeInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSize() } }}
-              placeholder="ex: 38, M, XL, One Size..."
+              placeholder="ex: 38, 39, M, XL..."
               className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
             />
             <button
               type="button"
               onClick={addSize}
-              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              className="px-4 py-2.5 bg-gray-900 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Adaugă
             </button>
           </div>
 
-          {form.sizes.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {form.sizes.map(size => (
-                <span
-                  key={size}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium"
-                >
-                  {size}
-                  <button
-                    type="button"
-                    onClick={() => removeSize(size)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
+          {form.sizes.length > 0 ? (
+            <div className="space-y-2">
+              {form.sizes.map(size => {
+                const qty = sizeStocks[size] ?? 0
+                return (
+                  <div key={size} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <span className="w-14 text-center text-sm font-bold text-gray-800 bg-white border border-gray-200 rounded-lg px-2 py-1.5">
+                      {size}
+                    </span>
+                    <div className="flex items-center gap-2 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => updateSizeStock(size, qty - 1)}
+                        className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        value={qty}
+                        onChange={e => updateSizeStock(size, parseInt(e.target.value) || 0)}
+                        className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-center font-semibold focus:outline-none focus:ring-2 focus:ring-gray-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateSizeStock(size, qty + 1)}
+                        className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors text-lg leading-none"
+                      >
+                        +
+                      </button>
+                      <span className="text-xs text-gray-400">buc.</span>
+                    </div>
+                    {qty === 0 ? (
+                      <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-1 rounded-lg">Epuizat</span>
+                    ) : qty <= 2 ? (
+                      <span className="text-xs font-semibold text-orange-500 bg-orange-50 px-2 py-1 rounded-lg">Ultimele {qty}</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">În stoc</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeSize(size)}
+                      className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Șterge mărimea"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
-          )}
-          {form.sizes.length === 0 && (
-            <p className="text-sm text-gray-400">Nicio mărime adăugată</p>
+          ) : (
+            <p className="text-sm text-gray-400 py-2">Nicio mărime adăugată</p>
           )}
         </section>
 
