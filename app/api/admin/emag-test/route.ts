@@ -20,7 +20,7 @@ export async function GET() {
   const ipRes = await fetchViaProxy('https://api.ipify.org?format=json')
   const ipData = await ipRes.json()
 
-  const credentials = Buffer.from('bancueugenia4@gmail.com:nextlukt').toString('base64')
+  const credentials = Buffer.from(`${process.env.EMAG_USERNAME}:${process.env.EMAG_API_KEY}`).toString('base64')
   const emagRes = await fetchViaProxy('https://marketplace-api.emag.ro/api-3/order/count', {
     method: 'POST',
     headers: { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' },
