@@ -6,46 +6,35 @@ export const runtime = 'nodejs'
 
 export async function GET() {
   const fixieUrl = process.env.FIXIE_URL
+  const agent = fixieUrl ? new HttpsProxyAgent(fixieUrl) : undefined
   const { default: nodeFetch } = await import('node-fetch')
 
-  const credentials = Buffer.from(
-    `${process.env.EMAG_USERNAME}:${process.env.EMAG_API_KEY}`
-  ).toString('base64')
+  const ipRes = await nodeFetch('https://api.ipify.org?format=json', { agent } as any)
+  const ipData = await ipRes.json() as { ip: string }
 
-  const opts = {
+  const username = process.env.EMAG_USERNAME || ''
+  const password = process.env.EMAG_PASSWORD || ''
+  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
+
+  const emagRes = await nodeFetch('https://marketplace-api.emag.ro/api-3/order/count', {
     method: 'POST',
-    headers: { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' },
+    headers: {
+      'Authorization': 'Basic ' + credentials,
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ data: {} }),
-  }
+    agent,
+  } as any)
 
-  // WITH proxy (Fixie fixed IP)
-  const agentProxy = fixieUrl ? new HttpsProxyAgent(fixieUrl) : undefined
-  const ipProxy = await nodeFetch('https://api.ipify.org?format=json', { agent: agentProxy } as any)
-  const ipProxyData = await ipProxy.json() as { ip: string }
-
-  const resWithProxy = await nodeFetch(
-    'https://marketplace-api.emag.ro/api-3/order/count',
-    { ...opts, agent: agentProxy } as any
-  )
-  const textWithProxy = await resWithProxy.text()
-
-  // WITHOUT proxy (random Vercel IP - not whitelisted)
-  const ipNoProxy = await nodeFetch('https://api.ipify.org?format=json')
-  const ipNoProxyData = await ipNoProxy.json() as { ip: string }
-
-  const resNoProxy = await nodeFetch(
-    'https://marketplace-api.emag.ro/api-3/order/count',
-    opts as any
-  )
-  const textNoProxy = await resNoProxy.text()
-
-  let bodyWithProxy: unknown
-  let bodyNoProxy: unknown
-  try { bodyWithProxy = JSON.parse(textWithProxy) } catch { bodyWithProxy = textWithProxy }
-  try { bodyNoProxy = JSON.parse(textNoProxy) } catch { bodyNoProxy = textNoProxy }
+  const text = await emagRes.text()
+  let body: unknown
+  try { body = JSON.parse(text) } catch { body = text }
 
   return NextResponse.json({
-    withProxy: { ip: ipProxyData.ip, status: resWithProxy.status, body: bodyWithProxy },
-    withoutProxy: { ip: ipNoProxyData.ip, status: resNoProxy.status, body: bodyNoProxy },
+    ip: ipData.ip,
+    username,
+    passwordPreview: password ? `${password.slice(0, 3)}... (${password.length} chars)` : 'NOT SET',
+    status: emagRes.status,
+    body,
   })
 }
