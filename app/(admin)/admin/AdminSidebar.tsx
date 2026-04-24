@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Package, ShoppingBag, LogOut, FolderOpen, BarChart2 } from 'lucide-react'
+import { Package, ShoppingBag, LogOut, FolderOpen, BarChart2, RefreshCw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/categories', label: 'Categorii', icon: FolderOpen },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart2 },
   { href: '/admin/orders', label: 'Comenzi', icon: ShoppingBag },
+  { href: '/admin/emag', label: 'eMAG Sync', icon: RefreshCw },
 ]
 
 export default function AdminSidebar({ userEmail }: { userEmail: string }) {
