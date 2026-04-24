@@ -62,7 +62,7 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     min_sale_price: Math.round(payload.price * 0.7 * 100) / 100,
     max_sale_price: Math.round(payload.price * 1.5 * 100) / 100,
     vat_id: 5,
-    stock: payload.stock,
+    stock: [{ warehouse_id: 1, value: payload.stock }],
     warranty: 0,
     handling_time: 3,
     is_displayed: 1,
