@@ -23,13 +23,11 @@ export async function GET() {
   const agent = fixieUrl ? new HttpsProxyAgent(fixieUrl) : undefined
   const { default: nodeFetch } = await import('node-fetch')
 
-  const [vatRes, handlingRes] = await Promise.all([
-    emagFetch('vat/read', { data: {} }, nodeFetch, agent),
-    emagFetch('handling_time/read', { data: {} }, nodeFetch, agent),
-  ])
+  const catRes = await emagFetch('category/read', { data: {}, currentPage: 1, itemsPerPage: 5000 }, nodeFetch, agent)
+  const all: any[] = catRes?.results || []
+  const footwear = all.filter((c: any) =>
+    /panto|adida|cizma|cizme|botine|botin|sandale|sandal|incalt|papuc|sneaker|boot|mocasin|balerini|espadrile|saboti|pantofi/i.test(c.name)
+  )
 
-  return NextResponse.json({
-    vatRates: vatRes?.results,
-    handlingTimes: handlingRes?.results,
-  })
+  return NextResponse.json({ footwear })
 }
