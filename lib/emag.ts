@@ -64,7 +64,7 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     vat_id: 5,
     stock: [{ warehouse_id: 1, value: payload.stock }],
     warranty: 0,
-    handling_time: 3,
+    handling_time: [{ warehouse_id: 1, value: 3 }],
     is_displayed: 1,
     availability: 1,
     status: 1,
