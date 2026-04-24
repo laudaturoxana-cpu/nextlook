@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { EMAG_FASHION_CATEGORIES } from '@/lib/emag'
+import { EMAG_FASHION_CATEGORIES } from '@/lib/emag-categories'
 
 interface Product {
   id: string

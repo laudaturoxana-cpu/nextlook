@@ -2,43 +2,6 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 
 const EMAG_BASE = 'https://marketplace-api.emag.ro/api-3'
 
-// Fashion categories available for this seller
-export const EMAG_FASHION_CATEGORIES = [
-  { id: 2669, name: 'Rochii' },
-  { id: 2671, name: 'Bluze dama' },
-  { id: 2672, name: 'Camasi dama' },
-  { id: 2673, name: 'Pantaloni dama' },
-  { id: 2674, name: 'Blugi dama' },
-  { id: 2675, name: 'Colanti' },
-  { id: 2676, name: 'Fuste' },
-  { id: 2678, name: 'Tricouri dama' },
-  { id: 2679, name: 'Pulovere dama' },
-  { id: 2680, name: 'Hanorace dama' },
-  { id: 2681, name: 'Geci dama' },
-  { id: 2683, name: 'Paltoane dama' },
-  { id: 2677, name: 'Sacouri dama' },
-  { id: 3785, name: 'Costume si compleuri dama' },
-  { id: 3855, name: 'Salopete dama' },
-  { id: 2719, name: 'Tricouri barbati' },
-  { id: 3133, name: 'Bluze barbati' },
-  { id: 2722, name: 'Camasi barbati' },
-  { id: 2720, name: 'Pulovere barbati' },
-  { id: 2721, name: 'Hanorace barbati' },
-  { id: 2723, name: 'Sacouri barbati' },
-  { id: 2727, name: 'Pantaloni barbati' },
-  { id: 2728, name: 'Blugi barbati' },
-  { id: 2729, name: 'Geci barbati' },
-  { id: 2731, name: 'Paltoane barbati' },
-  { id: 3784, name: 'Costume barbati' },
-  { id: 1390, name: 'Pantaloni copii' },
-  { id: 3216, name: 'Tricouri copii' },
-  { id: 3218, name: 'Bluze copii' },
-  { id: 3019, name: 'Imbracaminte plaja' },
-  { id: 2593, name: 'Costume de baie dama' },
-  { id: 2592, name: 'Lenjerie intima dama' },
-  { id: 1819, name: 'Lenjerie intima barbati' },
-] as const
-
 async function getAgent() {
   const fixieUrl = process.env.FIXIE_URL
   if (!fixieUrl) return undefined
