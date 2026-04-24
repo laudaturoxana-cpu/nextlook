@@ -32,4 +32,15 @@ export const EMAG_FASHION_CATEGORIES = [
   { id: 2593, name: 'Costume de baie dama' },
   { id: 2592, name: 'Lenjerie intima dama' },
   { id: 1819, name: 'Lenjerie intima barbati' },
+  // Incaltaminte dama
+  { id: 2693, name: 'Pantofi dama' },
+  { id: 2687, name: 'Botine dama' },
+  { id: 2689, name: 'Cizme dama' },
+  { id: 2694, name: 'Mocasini dama' },
+  { id: 2695, name: 'Balerini' },
+  // Incaltaminte barbati & sport
+  { id: 1756, name: 'Pantofi sport barbati' },
+  { id: 1759, name: 'Slapi si papuci sport barbati' },
+  // Incaltaminte copii
+  { id: 1393, name: 'Pantofi copii' },
 ] as const

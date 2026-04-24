@@ -25,9 +25,11 @@ export async function GET() {
 
   const catRes = await emagFetch('category/read', { data: {}, currentPage: 1, itemsPerPage: 5000 }, nodeFetch, agent)
   const all: any[] = catRes?.results || []
-  const footwear = all.filter((c: any) =>
-    /panto|adida|cizma|cizme|botine|botin|sandale|sandal|incalt|papuc|sneaker|boot|mocasin|balerini|espadrile|saboti|pantofi/i.test(c.name)
-  )
+  const footwear = all
+    .filter((c: any) =>
+      /panto|adida|cizma|cizme|botine|botin|sandale|sandal|incalt|papuc|sneaker|boot|mocasin|balerini|espadrile|saboti/i.test(c.name)
+    )
+    .map((c: any) => ({ id: c.id, name: c.name, allowed: c.is_allowed }))
 
   return NextResponse.json({ footwear })
 }
