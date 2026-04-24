@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
         original_price: body.original_price ? parseFloat(body.original_price) : null,
         category_id: body.category_id || null,
         brand: body.brand || null,
+        ean: body.ean || null,
         stock_quantity: parseInt(body.stock_quantity) || 0,
         sizes: body.sizes || [],
         size_stocks: body.size_stocks || {},

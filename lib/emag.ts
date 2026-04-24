@@ -35,15 +35,16 @@ export async function emagFetch(endpoint: string, body: object): Promise<any> {
 }
 
 export interface EmagProductPayload {
-  sellerId: number        // seller's internal integer ID
-  categoryId: number      // eMAG category ID
+  sellerId: number
+  categoryId: number
   name: string
   partNumber: string
   brand: string
   description: string
-  images: string[]        // array of public image URLs
+  images: string[]
   price: number
   stock: number
+  ean?: string | null
 }
 
 export async function syncProductToEmag(payload: EmagProductPayload) {
@@ -61,6 +62,7 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     sale_price: payload.price,
     min_sale_price: Math.round(payload.price * 0.7 * 100) / 100,
     max_sale_price: Math.round(payload.price * 1.5 * 100) / 100,
+    ...(payload.ean ? { ean: [payload.ean] } : {}),
     vat_id: 5,
     stock: [{ warehouse_id: 1, value: payload.stock }],
     warranty: 0,

@@ -37,6 +37,7 @@ export default async function EditProductPage({
         slug: product.slug || '',
         description: product.description || '',
         brand: product.brand || '',
+        ean: product.ean || '',
         category_id: product.category_id || '',
         price: product.price?.toString() || '',
         original_price: product.original_price?.toString() || '',

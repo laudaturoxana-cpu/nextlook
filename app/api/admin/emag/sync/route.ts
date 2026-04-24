@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       images,
       price: product.price,
       stock: product.stock_quantity || 0,
+      ean: product.ean || null,
     })
 
     if (result?.isError) {

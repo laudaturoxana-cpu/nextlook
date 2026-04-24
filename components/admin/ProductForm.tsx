@@ -23,6 +23,7 @@ interface ProductFormData {
   slug: string
   description: string
   brand: string
+  ean: string
   category_id: string
   price: string
   original_price: string
@@ -56,6 +57,7 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
     slug: '',
     description: '',
     brand: '',
+    ean: '',
     category_id: '',
     price: '',
     original_price: '',
@@ -185,9 +187,9 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
     try {
       const payload = {
         ...form,
+        ean: form.ean.trim() || null,
         size_stocks: sizeStocks,
         stock_quantity: form.sizes.length > 0 ? totalStock : parseInt(form.stock_quantity) || 0,
-        // Save colors as "Nume|#hex" strings in the TEXT[] array
         colors: form.colors
           .filter(c => c.name.trim())
           .map(c => `${c.name.trim()}|${c.hex}`),
@@ -283,6 +285,22 @@ export default function ProductForm({ initialData }: { initialData?: Partial<Pro
                 placeholder="ex: Adidas, Nike, Puma"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
+            </div>
+
+            {/* EAN */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                EAN (cod de bare)
+              </label>
+              <input
+                type="text"
+                value={form.ean}
+                onChange={e => setForm(prev => ({ ...prev, ean: e.target.value }))}
+                placeholder="ex: 5901234123457"
+                maxLength={20}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-400 mt-1">Obligatoriu pentru eMAG. 13 cifre de pe ambalaj.</p>
             </div>
 
             {/* Category */}
