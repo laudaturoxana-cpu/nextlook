@@ -23,45 +23,13 @@ export async function GET() {
   const agent = fixieUrl ? new HttpsProxyAgent(fixieUrl) : undefined
   const { default: nodeFetch } = await import('node-fetch')
 
-  // Get count of allowed categories
-  const countRes = await emagFetch('category/count', { data: { is_allowed: 1 } }, nodeFetch, agent)
-  const totalAllowed = countRes?.results?.noOfItems || '?'
-  const totalPages = countRes?.results?.noOfPages || 1
-
-  // Read all pages and collect only name + id
-  const allCategories: { id: number; name: string }[] = []
-  for (let page = 1; page <= Math.min(Number(totalPages), 20); page++) {
-    const res = await emagFetch('category/read', {
-      data: { is_allowed: 1, currentPage: page, itemsPerPage: 100 }
-    }, nodeFetch, agent)
-    if (res?.results) {
-      for (const cat of res.results) {
-        allCategories.push({ id: cat.id, name: cat.name })
-      }
-    }
-  }
-
-  // Filter for fashion-related
-  const fashionCategories = allCategories.filter(c =>
-    c.name.toLowerCase().includes('fashion') ||
-    c.name.toLowerCase().includes('imbrac') ||
-    c.name.toLowerCase().includes('îmbrac') ||
-    c.name.toLowerCase().includes('haine') ||
-    c.name.toLowerCase().includes('tricou') ||
-    c.name.toLowerCase().includes('rochie') ||
-    c.name.toLowerCase().includes('pantalon') ||
-    c.name.toLowerCase().includes('bluza') ||
-    c.name.toLowerCase().includes('bluz') ||
-    c.name.toLowerCase().includes('jacheta') ||
-    c.name.toLowerCase().includes('jachet') ||
-    c.name.toLowerCase().includes('fusta') ||
-    c.name.toLowerCase().includes('fustă')
-  )
+  const [vatRes, handlingRes] = await Promise.all([
+    emagFetch('vat/read', { data: {} }, nodeFetch, agent),
+    emagFetch('handling_time/read', { data: {} }, nodeFetch, agent),
+  ])
 
   return NextResponse.json({
-    totalAllowedCategories: totalAllowed,
-    totalPages,
-    fashionCategories,
-    allCategoryNames: allCategories.map(c => `[${c.id}] ${c.name}`),
+    vatRates: vatRes?.results,
+    handlingTimes: handlingRes?.results,
   })
 }
