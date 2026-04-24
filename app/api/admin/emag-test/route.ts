@@ -4,46 +4,48 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-async function call(url: string, username: string, password: string, agent: any, nodeFetch: any, body?: object) {
-  const credentials = Buffer.from(`${username}:${password}`).toString('base64')
-  const res = await nodeFetch(url, {
-    method: 'POST',
-    headers: { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    agent,
-  } as any)
-  const text = await res.text()
-  let parsed: unknown
-  try { parsed = JSON.parse(text) } catch { parsed = text }
-  return { status: res.status, body: parsed }
-}
-
 export async function GET() {
   const fixieUrl = process.env.FIXIE_URL
-  const agent = fixieUrl ? new HttpsProxyAgent(fixieUrl) : undefined
   const { default: nodeFetch } = await import('node-fetch')
 
-  const ipRes = await nodeFetch('https://api.ipify.org?format=json', { agent } as any)
-  const ipData = await ipRes.json() as { ip: string }
+  const credentials = Buffer.from(
+    `${process.env.EMAG_USERNAME}:${process.env.EMAG_API_KEY}`
+  ).toString('base64')
 
-  const email = process.env.EMAG_USERNAME || ''       // bancueugenia4@gmail.com
-  const apiCode = process.env.EMAG_API_KEY || ''      // nextlukt
-  // Username as shown in eMAG panel "Utilizator" column
-  const panelUser = email.replace('@', '_').replace(/\./g, '_')  // bancueugenia4_gmail_com
-
-  const BASE = 'https://marketplace-api.emag.ro/api-3'
-
-  const results = {
-    ip: ipData.ip,
-    // Standard: email + apiCode (current setup)
-    A_email_apiCode_orderCount: await call(`${BASE}/order/count`, email, apiCode, agent, nodeFetch, { data: {} }),
-    // Panel username format
-    B_panelUser_apiCode: await call(`${BASE}/order/count`, panelUser, apiCode, agent, nodeFetch, { data: {} }),
-    // product_offer/count (different resource)
-    C_email_apiCode_productCount: await call(`${BASE}/product_offer/count`, email, apiCode, agent, nodeFetch, { data: {} }),
-    // category/read (public-ish endpoint)
-    D_email_apiCode_categoryRead: await call(`${BASE}/category/read`, email, apiCode, agent, nodeFetch, { data: { currentPage: 1, itemsPerPage: 1 } }),
+  const opts = {
+    method: 'POST',
+    headers: { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: {} }),
   }
 
-  return NextResponse.json(results)
+  // WITH proxy (Fixie fixed IP)
+  const agentProxy = fixieUrl ? new HttpsProxyAgent(fixieUrl) : undefined
+  const ipProxy = await nodeFetch('https://api.ipify.org?format=json', { agent: agentProxy } as any)
+  const ipProxyData = await ipProxy.json() as { ip: string }
+
+  const resWithProxy = await nodeFetch(
+    'https://marketplace-api.emag.ro/api-3/order/count',
+    { ...opts, agent: agentProxy } as any
+  )
+  const textWithProxy = await resWithProxy.text()
+
+  // WITHOUT proxy (random Vercel IP - not whitelisted)
+  const ipNoProxy = await nodeFetch('https://api.ipify.org?format=json')
+  const ipNoProxyData = await ipNoProxy.json() as { ip: string }
+
+  const resNoProxy = await nodeFetch(
+    'https://marketplace-api.emag.ro/api-3/order/count',
+    opts as any
+  )
+  const textNoProxy = await resNoProxy.text()
+
+  let bodyWithProxy: unknown
+  let bodyNoProxy: unknown
+  try { bodyWithProxy = JSON.parse(textWithProxy) } catch { bodyWithProxy = textWithProxy }
+  try { bodyNoProxy = JSON.parse(textNoProxy) } catch { bodyNoProxy = textNoProxy }
+
+  return NextResponse.json({
+    withProxy: { ip: ipProxyData.ip, status: resWithProxy.status, body: bodyWithProxy },
+    withoutProxy: { ip: ipNoProxyData.ip, status: resNoProxy.status, body: bodyNoProxy },
+  })
 }
