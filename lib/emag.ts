@@ -45,6 +45,7 @@ export interface EmagProductPayload {
   price: number
   stock: number
   ean?: string | null
+  sizes?: string[]
 }
 
 export async function syncProductToEmag(payload: EmagProductPayload) {
@@ -63,6 +64,9 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     min_sale_price: Math.round(payload.price * 0.7 * 100) / 100,
     max_sale_price: Math.round(payload.price * 1.5 * 100) / 100,
     ...(payload.ean ? { ean: [payload.ean] } : {}),
+    ...(payload.sizes && payload.sizes.length > 0 ? {
+      characteristics: payload.sizes.map(size => ({ id: 6506, value: size })),
+    } : {}),
     vat_id: 5,
     stock: [{ warehouse_id: 1, value: payload.stock }],
     warranty: 0,
