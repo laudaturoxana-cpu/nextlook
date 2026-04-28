@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +52,9 @@ export async function PUT(
       .single()
 
     if (error) throw error
+
+    revalidatePath(`/admin/products/${id}`)
+    revalidatePath('/admin/products')
 
     return NextResponse.json({ product: data })
   } catch (error) {
