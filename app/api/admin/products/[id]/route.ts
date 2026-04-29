@@ -36,7 +36,7 @@ export async function PUT(
         original_price: body.original_price ? parseFloat(body.original_price) : null,
         category_id: body.category_id || null,
         brand: body.brand || null,
-        ...(body.ean !== undefined ? { ean: body.ean || null } : {}),
+        ...(body.ean ? { ean: body.ean } : {}),
         stock_quantity: parseInt(body.stock_quantity) || 0,
         sizes: body.sizes || [],
         size_stocks: body.size_stocks || {},
@@ -57,9 +57,9 @@ export async function PUT(
     revalidatePath('/admin/products')
 
     return NextResponse.json({ product: data })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Admin PUT product error:', error)
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Failed to update product' }, { status: 500 })
   }
 }
 
