@@ -45,11 +45,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const adminClient = createAdminClient()
 
+    // Ensure slug is unique by appending a suffix if needed
+    let slug = body.slug
+    const { count } = await adminClient
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('slug', slug)
+    if (count && count > 0) {
+      slug = `${slug}-${Date.now().toString().slice(-5)}`
+    }
+
     const { data, error } = await adminClient
       .from('products')
       .insert({
         name: body.name,
-        slug: body.slug,
+        slug,
         description: body.description || null,
         price: parseFloat(body.price),
         original_price: body.original_price ? parseFloat(body.original_price) : null,
