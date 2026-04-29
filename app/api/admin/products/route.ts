@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         original_price: body.original_price ? parseFloat(body.original_price) : null,
         category_id: body.category_id || null,
         brand: body.brand || null,
-        ean: body.ean || null,
+        ...(body.ean ? { ean: body.ean } : {}),
         stock_quantity: parseInt(body.stock_quantity) || 0,
         sizes: body.sizes || [],
         size_stocks: body.size_stocks || {},
@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ product: data })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Admin POST product error:', error)
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+    return NextResponse.json({ error: error?.message || 'Failed to create product' }, { status: 500 })
   }
 }
