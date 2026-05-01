@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const charId = searchParams.get('id') || '6506'
 
-  const result = await emagFetch('characteristic/read', {
+  // eMAG characteristics come from category/read, not a separate endpoint
+  const result = await emagFetch('category/read', {
     id: parseInt(charId),
   })
 
