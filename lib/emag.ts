@@ -34,6 +34,13 @@ export async function emagFetch(endpoint: string, body: object): Promise<any> {
   }
 }
 
+function isValidEan13(ean: string): boolean {
+  if (!/^\d{13}$/.test(ean)) return false
+  const digits = ean.split('').map(Number)
+  const check = digits.slice(0, 12).reduce((sum, d, i) => sum + d * (i % 2 === 0 ? 1 : 3), 0)
+  return (10 - (check % 10)) % 10 === digits[12]
+}
+
 export interface EmagProductPayload {
   sellerId: number
   categoryId: number
@@ -63,7 +70,10 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     sale_price: payload.price,
     min_sale_price: Math.round(payload.price * 0.7 * 100) / 100,
     max_sale_price: Math.round(payload.price * 1.5 * 100) / 100,
-    ...(payload.ean ? { ean: [payload.ean] } : {}),
+    ...(payload.ean && isValidEan13(payload.ean) ? { ean: [payload.ean] } : {}),
+    ...(payload.sizes && payload.sizes.length > 0
+      ? { characteristics: payload.sizes.map(size => ({ id: 6506, value: size })) }
+      : {}),
     vat_id: 5,
     stock: [{ warehouse_id: 1, value: payload.stock }],
     warranty: 0,
