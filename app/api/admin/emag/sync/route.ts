@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { syncProductToEmag } from '@/lib/emag'
+import { syncProductToEmag, emagFetch } from '@/lib/emag'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -29,8 +29,15 @@ export async function POST(request: NextRequest) {
     // Get or generate eMAG seller ID
     let emagSellerId = product.emag_seller_id
     if (!emagSellerId) {
-      // Generate unique integer ID using timestamp + random
-      emagSellerId = Math.floor(Date.now() / 1000) % 16000000 + Math.floor(Math.random() * 1000)
+      emagSellerId = Math.floor(Date.now() / 1000) % 1600000 + Math.floor(Math.random() * 1000)
+    }
+
+    // If previously synced and has sizes, deactivate the old single offer
+    // (old code sent one offer for all sizes; new code sends one per size)
+    if (product.emag_seller_id && product.sizes?.length > 0) {
+      await emagFetch('product_offer/save', {
+        data: [{ id: product.emag_seller_id, status: 0 }],
+      }).catch(() => {}) // ignore if old offer doesn't exist
     }
 
     // Build image URLs - only publicly accessible ones
