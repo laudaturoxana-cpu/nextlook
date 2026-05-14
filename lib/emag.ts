@@ -105,7 +105,7 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     return {
       ...base,
       // unique seller ID per size: base * 100 + index+1 (max 8 digits)
-      id: (payload.sellerId % 100000) * 100 + i + 1,
+      id: payload.sellerId * 10 + i,
       ...(sizeEan && isValidEan13(sizeEan) ? { ean: [sizeEan] } : {}),
       stock: [{ warehouse_id: 1, value: sizeStock }],
       characteristics: [{ id: 6506, value: toEmagSize(size) }],

@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
       sizeStocks: product.size_stocks || {},
     })
 
-    // Check both top-level and item-level errors
-    const itemResult = result?.results?.[0]
-    const hasError = result?.isError || itemResult?.isError
+    // Check top-level error and all item-level errors
+    const allResults: any[] = result?.results || []
+    const failedResults = allResults.filter((r: any) => r?.isError)
+    const hasError = result?.isError || failedResults.length > 0
 
     if (hasError) {
-      // Update status as error
       await adminSupabase
         .from('products')
         .update({
@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', productId)
 
-      const messages = itemResult?.messages || result?.messages || []
+      const messages = failedResults.flatMap((r: any) => r?.messages || [])
+        .concat(result?.messages || [])
       return NextResponse.json({
         success: false,
         emagResponse: { ...result, messages },
