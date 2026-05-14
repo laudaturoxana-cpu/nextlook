@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       stock: product.stock_quantity || 0,
       ean: product.ean || null,
       sizes: product.sizes || [],
+      sizeStocks: product.size_stocks || {},
     })
 
     // Check both top-level and item-level errors

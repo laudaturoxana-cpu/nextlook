@@ -40,7 +40,7 @@ function toEmagSize(size: string): string {
   return size
 }
 
-function isValidEan13(ean: string): boolean {
+export function isValidEan13(ean: string): boolean {
   if (!/^\d{13}$/.test(ean)) return false
   const digits = ean.split('').map(Number)
   const check = digits.slice(0, 12).reduce((sum, d, i) => sum + d * (i % 2 === 0 ? 1 : 3), 0)
@@ -58,12 +58,14 @@ export interface EmagProductPayload {
   price: number
   stock: number
   ean?: string | null
+  // per-size data: sizes + optional EAN and stock per size
   sizes?: string[]
+  sizeEans?: Record<string, string>   // e.g. { "37": "4002335800962" }
+  sizeStocks?: Record<string, number> // e.g. { "37": 2, "38": 1 }
 }
 
 export async function syncProductToEmag(payload: EmagProductPayload) {
-  const productData = {
-    id: payload.sellerId,
+  const base = {
     category_id: payload.categoryId,
     name: payload.name,
     part_number: payload.partNumber.slice(0, 25),
@@ -76,12 +78,7 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     sale_price: payload.price,
     min_sale_price: Math.round(payload.price * 0.7 * 100) / 100,
     max_sale_price: Math.round(payload.price * 1.5 * 100) / 100,
-    ...(payload.ean && isValidEan13(payload.ean) ? { ean: [payload.ean] } : {}),
-    ...(payload.sizes && payload.sizes.length > 0
-      ? { characteristics: payload.sizes.map(size => ({ id: 6506, value: toEmagSize(size) })) }
-      : {}),
     vat_id: 5,
-    stock: [{ warehouse_id: 1, value: payload.stock }],
     warranty: 0,
     handling_time: [{ warehouse_id: 1, value: 3 }],
     is_displayed: 1,
@@ -89,5 +86,31 @@ export async function syncProductToEmag(payload: EmagProductPayload) {
     status: 1,
   }
 
-  return emagFetch('product_offer/save', { data: [productData] })
+  // No sizes — send a single offer
+  if (!payload.sizes || payload.sizes.length === 0) {
+    return emagFetch('product_offer/save', {
+      data: [{
+        ...base,
+        id: payload.sellerId,
+        ...(payload.ean && isValidEan13(payload.ean) ? { ean: [payload.ean] } : {}),
+        stock: [{ warehouse_id: 1, value: payload.stock }],
+      }],
+    })
+  }
+
+  // One separate offer per size — eMAG requires this
+  const offers = payload.sizes.map((size, i) => {
+    const sizeEan = payload.sizeEans?.[size]
+    const sizeStock = payload.sizeStocks?.[size] ?? Math.floor(payload.stock / payload.sizes!.length)
+    return {
+      ...base,
+      // unique seller ID per size: base * 100 + index+1 (max 8 digits)
+      id: (payload.sellerId % 100000) * 100 + i + 1,
+      ...(sizeEan && isValidEan13(sizeEan) ? { ean: [sizeEan] } : {}),
+      stock: [{ warehouse_id: 1, value: sizeStock }],
+      characteristics: [{ id: 6506, value: toEmagSize(size) }],
+    }
+  })
+
+  return emagFetch('product_offer/save', { data: offers })
 }
